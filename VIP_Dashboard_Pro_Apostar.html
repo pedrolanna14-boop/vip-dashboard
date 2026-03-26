@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VIP Dashboard Pro — Apostar.bet</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+:root {
+  --bg:#f0f2f5; --sidebar-bg:#002a4d; --text-main:#2c3e50; --text-sec:#7f8c8d;
+  --card-bg:#ffffff; --border:#e0e0e0; --primary:#004786; --secondary:#F6AC00;
+  --success:#27ae60; --danger:#c0392b; --warning:#e67e22;
+  --hover-row:#f8f9fa; --modal-overlay:rgba(0,0,0,0.5); --shadow:0 2px 10px rgba(0,0,0,0.05);
+  --card-border-top:4px solid var(--secondary); --kpi-color:var(--primary);
+  --nav-text:rgba(255,255,255,0.7); --nav-hover-bg:rgba(255,255,255,0.1);
+  --nav-hover-text:#ffffff; --nav-active-bg:var(--primary); --nav-active-text:#ffffff;
+}
+[data-theme="dark"] {
+  --bg:#0a192f; --sidebar-bg:#020c1b; --text-main:#e6f1ff; --text-sec:#8892b0;
+  --card-bg:#112240; --border:#233554; --primary:#F6AC00; --secondary:#004786;
+  --success:#64ffda; --danger:#ff6b6b; --warning:#f39c12;
+  --hover-row:#1d2d50; --shadow:0 10px 30px -10px rgba(2,12,27,0.7);
+  --card-border-top:4px solid var(--primary); --kpi-color:#ccd6f6;
+  --nav-text:#8892b0; --nav-hover-bg:#112240; --nav-hover-text:#e6f1ff;
+  --nav-active-bg:rgba(246,172,0,0.15); --nav-active-text:var(--primary);
+}
+*{box-sizing:border-box;transition:background-color .3s,color .3s,border-color .3s}
+body{margin:0;font-family:"Segoe UI",sans-serif;background:var(--bg);color:var(--text-main);display:flex;height:100vh;overflow:hidden}
+
+/* SIDEBAR */
+.sidebar{width:265px;background:var(--sidebar-bg);color:white;display:flex;flex-direction:column;padding:20px;flex-shrink:0;border-right:1px solid var(--border)}
+.logo{margin-bottom:15px;text-align:center;display:flex;justify-content:center;align-items:center;min-height:50px}
+.logo-img{max-width:160px;max-height:65px;width:auto;height:auto;object-fit:contain}
+.theme-switch-wrapper{display:flex;align-items:center;justify-content:center;margin-bottom:20px}
+.theme-switch{position:relative;display:inline-block;width:74px;height:36px}
+.theme-switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,0.1);border-radius:34px;border:1px solid rgba(255,255,255,0.2);transition:.4s}
+.slider:before{position:absolute;content:"";height:28px;width:28px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.4s;z-index:1;box-shadow:0 2px 5px rgba(0,0,0,0.3)}
+.slider-icon{position:absolute;top:50%;width:18px;height:18px;z-index:5;transition:.4s;pointer-events:none}
+.sun-icon{left:8px;transform:translateY(-50%);fill:#F6AC00;stroke:#F6AC00;opacity:1}
+.moon-icon{right:8px;transform:translateY(-56%);fill:rgba(255,255,255,0.3);opacity:0.5}
+input:checked+.slider:before{transform:translateX(38px)}
+input:checked+.slider .sun-icon{opacity:0.3}
+input:checked+.slider .moon-icon{opacity:1;fill:#002a4d}
+.nav-links{flex:1;display:flex;flex-direction:column;gap:6px;overflow-y:auto}
+.nav-btn{background:transparent;border:none;color:var(--nav-text);width:100%;padding:11px 14px;text-align:left;cursor:pointer;border-radius:8px;font-weight:500;display:flex;align-items:center;gap:12px;transition:.2s;font-size:.9em}
+.nav-btn:hover{background:var(--nav-hover-bg);color:var(--nav-hover-text)}
+.nav-btn.active{background:var(--nav-active-bg);color:var(--nav-active-text)!important;font-weight:bold;border-left:4px solid var(--secondary)}
+.nav-section{font-size:.68em;font-weight:700;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:1.5px;padding:10px 14px 4px;margin-top:4px}
+.admin-box{margin-top:auto;border-top:1px solid rgba(255,255,255,0.1);padding-top:12px;display:flex;flex-direction:column;gap:8px}
+.btn-act{width:100%;padding:10px;border-radius:6px;cursor:pointer;border:none;font-weight:bold;font-size:13px;display:flex;align-items:center;justify-content:center;gap:8px;transition:.2s;color:white}
+.btn-imp{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2)}
+.btn-imp:hover{background:white;color:#002a4d}
+.btn-sav{background:var(--secondary);color:#002a4d}
+.btn-sav:hover{filter:brightness(1.1);transform:translateY(-2px)}
+
+/* MAIN */
+.main{flex:1;padding:25px;overflow-y:auto;position:relative}
+.view{display:none;animation:fade .3s}
+.view.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+h2{color:var(--text-main);margin-top:0;text-align:center}
+
+/* CARDS */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:18px;margin-bottom:22px}
+.card{background:var(--card-bg);padding:18px;border-radius:12px;border-top:var(--card-border-top);box-shadow:var(--shadow);text-align:center;display:flex;flex-direction:column;justify-content:center;align-items:center;border:1px solid var(--border)}
+.card-click{cursor:pointer;transition:.2s}
+.card-click:hover{transform:translateY(-3px);background:var(--hover-row)}
+.c-val{font-size:22px;font-weight:800;color:var(--kpi-color);margin-top:5px}
+.c-lbl{font-size:11px;text-transform:uppercase;color:var(--text-sec);font-weight:700;display:flex;align-items:center;gap:5px;justify-content:center}
+.c-sub{font-size:9px;opacity:.7;margin-left:3px;font-weight:normal;text-transform:none;color:var(--text-sec)}
+
+/* ALERT CARDS */
+.alert-card{background:var(--card-bg);border-radius:10px;padding:15px 18px;border:1px solid var(--border);box-shadow:var(--shadow);display:flex;align-items:center;gap:15px;cursor:pointer;transition:.2s}
+.alert-card:hover{transform:translateX(4px)}
+.alert-card.red{border-left:5px solid var(--danger)}
+.alert-card.orange{border-left:5px solid var(--warning)}
+.alert-card.black{border-left:5px solid #555}
+.alert-icon{font-size:24px;flex-shrink:0}
+.alert-count{font-size:28px;font-weight:900;color:var(--kpi-color)}
+.alert-label{font-size:12px;color:var(--text-sec);text-transform:uppercase;font-weight:600}
+
+/* GRID */
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;margin-bottom:25px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:25px}
+@media(max-width:1200px){.grid-3,.grid-2{grid-template-columns:1fr}}
+
+/* SEARCH */
+.search-wrap{display:flex;justify-content:center;margin-bottom:25px;position:relative;max-width:600px;margin-left:auto;margin-right:auto}
+.search-inp{width:100%;padding:13px 55px 13px 22px;border-radius:50px;border:1px solid var(--border);background:var(--card-bg);color:var(--text-main);outline:none;font-size:16px;box-shadow:var(--shadow)}
+.search-btn{position:absolute;right:5px;top:50%;transform:translateY(-50%);width:40px;height:40px;border:none;background:var(--secondary);color:#002a4d;border-radius:50%;cursor:pointer;font-size:15px;transition:.2s;display:flex;align-items:center;justify-content:center}
+[data-theme="dark"] .search-btn{background:var(--primary);color:#0a192f}
+.search-btn:hover{filter:brightness(1.1)}
+
+/* PLAYER PROFILE */
+.p-grid{display:grid;grid-template-columns:290px 1fr;gap:22px;display:none}
+.p-left-col{display:flex;flex-direction:column;gap:18px}
+.p-info{background:var(--card-bg);padding:22px;border-radius:12px;text-align:center;box-shadow:var(--shadow);border:1px solid var(--border)}
+.avatar-container{position:relative;width:76px;height:76px;margin:0 auto 12px}
+.avatar{width:100%;height:100%;background:var(--bg);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--text-sec);border:2px solid var(--border)}
+.badge-mini{position:absolute;bottom:-5px;right:-10px;width:38px;height:38px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3))}
+#pid{color:var(--text-sec);font-size:12px;margin-bottom:20px;font-weight:600}
+.dates-container{font-size:11px;color:var(--text-sec);margin-bottom:18px;line-height:1.6;border-top:1px solid var(--border);padding-top:12px}
+.daily-box{background:var(--bg);padding:13px;border-radius:8px;margin-top:16px;text-align:left;border:1px solid var(--border)}
+.mini-tbl{width:100%;font-size:12px;border-collapse:collapse;margin-top:5px;color:var(--text-main)}
+.mini-tbl td{padding:5px 0;border-bottom:1px solid var(--border)}
+.mini-tbl th{text-align:right;color:var(--text-sec);font-weight:normal;padding-bottom:4px;border-bottom:1px solid var(--border)}
+.val-pre{color:var(--text-sec);text-align:right}
+.val-pos{color:var(--text-main);font-weight:bold;text-align:right}
+.tier-box{background:var(--card-bg);padding:18px;border-radius:12px;margin-bottom:18px;box-shadow:var(--shadow);border:1px solid var(--border)}
+.tier-header{display:flex;justify-content:space-between;align-items:center;font-weight:bold;margin-bottom:10px;color:var(--text-main)}
+.prog-bg{background:var(--bg);height:13px;border-radius:10px;overflow:hidden;position:relative;border:1px solid var(--border)}
+.prog-fill{height:100%;width:0%;transition:width 1s ease-in-out;border-radius:10px}
+
+/* STATUS BADGES */
+.status-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase}
+.status-ativo{background:#d4edda;color:#155724}
+.status-inativo{background:#fff3cd;color:#856404}
+.status-churned{background:#f8d7da;color:#721c24}
+.status-autoexcluido{background:#1a1a1a;color:#fff}
+.status-sigap{background:#6c3483;color:#fff}
+[data-theme="dark"] .status-ativo{background:#0d3a1f;color:#64ffda}
+[data-theme="dark"] .status-inativo{background:#3a2a00;color:#f6c000}
+[data-theme="dark"] .status-churned{background:#3a0d0d;color:#ff6b6b}
+
+/* ALERT VIEW */
+.alerts-grid{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+.alert-player-row{background:var(--card-bg);border-radius:10px;padding:14px 18px;border:1px solid var(--border);display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:15px;box-shadow:var(--shadow);transition:.2s;cursor:pointer}
+.alert-player-row:hover{transform:translateX(4px);border-color:var(--primary)}
+.alert-player-row.danger{border-left:5px solid var(--danger)}
+.alert-player-row.warning{border-left:5px solid var(--warning)}
+.alert-player-row.critical{border-left:5px solid #1a1a1a}
+.alert-player-row.sigap{border-left:5px solid #6c3483}
+.alert-player-name{font-weight:700;color:var(--text-main);font-size:14px}
+.alert-player-meta{font-size:12px;color:var(--text-sec);margin-top:3px}
+.alert-days{font-size:20px;font-weight:900;color:var(--danger);text-align:center}
+.alert-days-label{font-size:10px;color:var(--text-sec);text-align:center;text-transform:uppercase}
+
+/* TABLES */
+.tbl-box{background:var(--card-bg);border-radius:10px;overflow:hidden;box-shadow:var(--shadow);border:1px solid var(--border)}
+.tbl{width:100%;border-collapse:collapse;color:var(--text-main)}
+.tbl th{background:var(--sidebar-bg);color:#fff;padding:11px 13px;text-align:center;font-size:12px;text-transform:uppercase;letter-spacing:.5px;position:sticky;top:0}
+.tbl td{padding:11px 13px;border-bottom:1px solid var(--border);font-size:13px;text-align:center}
+.tbl tr:hover{background:var(--hover-row)}
+.pos{color:var(--success);font-weight:bold}
+.neg{color:var(--danger);font-weight:bold}
+.sub-val{font-size:11px;color:var(--text-sec);display:block}
+.player-link{color:var(--kpi-color);text-decoration:none;font-weight:bold;cursor:pointer}
+.player-link:hover{text-decoration:underline}
+.copy-btn{cursor:pointer;color:var(--text-sec);margin-left:8px;font-size:12px;transition:.2s}
+.copy-btn:hover{color:var(--text-main);transform:scale(1.1)}
+
+/* MODAL */
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:var(--modal-overlay);z-index:1000;display:none;justify-content:center;align-items:center;backdrop-filter:blur(3px)}
+.modal-box{background:var(--card-bg);width:520px;max-height:82vh;border-radius:15px;padding:25px;display:flex;flex-direction:column;box-shadow:0 20px 25px -5px rgba(0,0,0,.5);border:1px solid var(--border)}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;border-bottom:1px solid var(--border);padding-bottom:10px}
+.modal-title{font-size:17px;font-weight:bold;color:var(--text-main);margin:0}
+.modal-close{cursor:pointer;font-size:20px;color:var(--text-sec)}
+.modal-close:hover{color:var(--danger)}
+.modal-list{overflow-y:auto;flex:1}
+.modal-item{display:flex;justify-content:space-between;padding:11px;border-bottom:1px solid var(--border);font-size:14px;color:var(--text-main)}
+.modal-item:hover{background:var(--hover-row)}
+.modal-link{color:var(--kpi-color);font-weight:bold;cursor:pointer;text-decoration:none}
+.modal-link:hover{text-decoration:underline}
+.clickable-cost{color:var(--kpi-color);font-weight:bold;cursor:pointer;text-decoration:underline;text-decoration-style:dotted;transition:.2s}
+.clickable-cost:hover{color:var(--secondary)}
+
+/* SETTINGS */
+.settings-box{background:var(--card-bg);padding:20px;border-radius:12px;border:1px solid var(--border);margin-bottom:18px;box-shadow:var(--shadow)}
+.log-container{background:#020c1b;color:#64ffda;border-radius:8px;padding:14px;height:280px;overflow-y:auto;font-family:"Consolas",monospace;font-size:12px;border:1px solid #233554}
+.log-line{margin-bottom:4px;border-bottom:1px solid #112240;padding-bottom:2px}
+.log-err{color:#ff6b6b;font-weight:bold}
+.btn-upload-label{background:var(--sidebar-bg);color:#fff;padding:10px 20px;border-radius:6px;cursor:pointer;font-size:13px;display:inline-flex;align-items:center;gap:8px;transition:.2s;border:1px solid var(--border)}
+.btn-upload-label:hover{filter:brightness(1.2)}
+.actions-list{list-style:none;padding:0;margin:0}
+.actions-list li{position:relative;padding-left:18px;margin-bottom:9px;font-size:13px;line-height:1.4;color:var(--text-main);border-bottom:1px dashed var(--border);padding-bottom:7px}
+.actions-list li:last-child{border-bottom:none}
+.actions-list li::before{content:"●";color:var(--primary);font-size:10px;position:absolute;left:0;top:2px}
+.no-actions{color:var(--text-sec);font-style:italic;font-size:13px;text-align:center;padding:10px}
+
+/* SMARTICO SECTION */
+.smartico-box{background:var(--bg);padding:14px;border-radius:10px;border:1px solid var(--border);margin-top:14px}
+.smartico-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed var(--border);font-size:13px}
+.smartico-row:last-child{border-bottom:none}
+.smartico-label{color:var(--text-sec);font-size:12px}
+.smartico-val{font-weight:700;color:var(--text-main)}
+
+/* GENEROSITY BOX */
+.generosity-box{background:linear-gradient(135deg,#f0f7ff,#fff);border:1px solid #b8d4f5;border-radius:10px;padding:16px;margin-top:14px}
+[data-theme="dark"] .generosity-box{background:linear-gradient(135deg,#112240,#0a192f);border-color:#233554}
+.gen-amount{font-size:26px;font-weight:900;color:var(--primary);margin:4px 0}
+.gen-label{font-size:11px;text-transform:uppercase;color:var(--text-sec);font-weight:600}
+.gen-blocked{background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:10px;margin-top:10px;font-size:12px;color:#856404;display:flex;align-items:center;gap:8px}
+[data-theme="dark"] .gen-blocked{background:#3a2a00;color:#f6c000;border-color:#f6c000}
+
+/* FILTER BAR */
+.filter-bar{background:var(--card-bg);border-radius:10px;padding:14px 18px;margin-bottom:20px;display:flex;gap:15px;align-items:center;flex-wrap:wrap;border:1px solid var(--border);box-shadow:var(--shadow)}
+.filter-bar label{font-size:12px;font-weight:600;color:var(--text-sec);text-transform:uppercase}
+.filter-bar select,.filter-bar input[type=number]{background:var(--bg);border:1px solid var(--border);color:var(--text-main);border-radius:6px;padding:7px 10px;font-size:13px;outline:none}
+.filter-bar button{background:var(--primary);color:#fff;border:none;border-radius:6px;padding:7px 16px;cursor:pointer;font-weight:600;font-size:13px;transition:.2s}
+.filter-bar button:hover{filter:brightness(1.1)}
+.filter-btn-reset{background:var(--hover-row)!important;color:var(--text-sec)!important;border:1px solid var(--border)!important}
+
+/* TIP */
+.tip{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;background:var(--text-sec);color:var(--card-bg);border-radius:50%;font-size:9px;cursor:help;margin-left:3px;opacity:.7}
+</style>
+</head>
+<body data-theme="light">
+
+<div id="modal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 id="modal-title" class="modal-title">Detalhes</h3>
+      <span class="modal-close" onclick="closeModal()">×</span>
+    </div>
+    <div id="modal-content" class="modal-list"></div>
+  </div>
+</div>
+
+<nav class="sidebar">
+  <div class="logo">
+    <img id="logo-img" src="data:image/png;base64,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" alt="Logo" class="logo-img" onerror="this.style.display='none';this.nextElementSibling.style.display='block';" style="display:block;">
+    <h1 style="display:none;margin:0;font-size:20px;color:white;">VIP PRO</h1>
+  </div>
+
+  <div class="theme-switch-wrapper">
+    <label class="theme-switch" for="checkbox">
+      <input type="checkbox" id="checkbox" onchange="toggleTheme(this.checked)">
+      <div class="slider">
+        <svg class="slider-icon sun-icon" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="5"></circle><path stroke="currentColor" stroke-width="3" stroke-linecap="round" d="M12 2v2 M12 20v2 M4.93 4.93l1.41 1.41 M17.66 17.66l1.41 1.41 M2 12h2 M20 12h2 M4.93 19.07l1.41-1.41 M17.66 6.34l1.41-1.41"></path></svg>
+        <svg class="slider-icon moon-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+      </div>
+    </label>
+  </div>
+
+  <div class="nav-links">
+    <div class="nav-section">Visões</div>
+    <button class="nav-btn active" onclick="go('overview',this)"><i class="fas fa-chart-pie"></i> Dashboard Geral</button>
+    <button class="nav-btn" onclick="go('pipeline',this)"><i class="fas fa-filter"></i> Pipeline</button>
+    <button class="nav-btn" onclick="go('player',this)"><i class="fas fa-user"></i> Visão Jogador</button>
+    <button class="nav-btn" onclick="go('list',this)"><i class="fas fa-list"></i> Lista Completa</button>
+    <button class="nav-btn" onclick="go('costs',this)"><i class="fas fa-dollar-sign"></i> Custos & Ações</button>
+    <div class="nav-section">Monitoramento</div>
+    <button class="nav-btn" onclick="go('alertas',this)"><i class="fas fa-bell"></i> Alertas de Status <span id="alert-badge" style="background:var(--danger);color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;margin-left:auto">0</span></button>
+    <div class="nav-section">Sistema</div>
+    <button class="nav-btn" onclick="go('about',this)"><i class="fas fa-info-circle"></i> Logs & Config</button>
+  </div>
+
+  <div class="admin-box">
+    <label class="btn-act btn-imp">
+      <i class="fas fa-upload"></i> Importar CSV
+      <input type="file" style="display:none" accept=".csv" onchange="loadFile(this)">
+    </label>
+    <button class="btn-act btn-sav" onclick="saveData()"><i class="fas fa-save"></i> Salvar c/ Dados</button>
+    <div id="stat-txt" style="text-align:center;font-size:11px;color:#4cd137;margin-top:4px">✅ 0 Registros</div>
+  </div>
+</nav>
+
+<main class="main">
+
+<!-- OVERVIEW -->
+<div id="v-overview" class="view active">
+  <h2>Dashboard Geral</h2>
+  <div class="kpi-row">
+    <div class="card"><div class="c-lbl">Jogadores VIP</div><div class="c-val" id="k-tot">0</div></div>
+    <div class="card"><div class="c-lbl">Novos Depósitos</div><div class="c-val" id="k-dep">R$ 0</div></div>
+    <div class="card"><div class="c-lbl">Wager Gerado</div><div class="c-val" id="k-wag">R$ 0</div></div>
+    <div class="card"><div class="c-lbl">GGR Gerado</div><div class="c-val" id="k-ggr">R$ 0</div></div>
+    <div class="card"><div class="c-lbl">Uplift Wager <span class="tip" title="Crescimento % do Wager Pré vs Pós">?</span></div><div class="c-val" id="k-up">+0%</div></div>
+  </div>
+  <div class="kpi-row" style="grid-template-columns:repeat(5,1fr)">
+    <div class="card card-click" onclick="showDetails('newGold')"><div class="c-lbl"><i class="fas fa-medal" style="color:#F6AC00"></i> Novos Ouros <span class="c-sub">(Pós)</span></div><div class="c-val" id="k-new-gold">0</div></div>
+    <div class="card card-click" onclick="showDetails('tierUp')"><div class="c-lbl"><i class="fas fa-arrow-up" style="color:var(--success)"></i> Evolução Tier</div><div class="c-val" id="k-tier-up">0</div></div>
+    <div class="card card-click" onclick="go('alertas',document.querySelector('.nav-btn:nth-child(7)'))"><div class="c-lbl" style="color:var(--warning)"><i class="fas fa-clock"></i> Inativos 15d+</div><div class="c-val" id="k-inativo" style="color:var(--warning)">0</div></div>
+    <div class="card card-click" onclick="go('alertas',document.querySelector('.nav-btn:nth-child(7)'))"><div class="c-lbl" style="color:var(--danger)"><i class="fas fa-user-slash"></i> Churned 30d+</div><div class="c-val" id="k-churned" style="color:var(--danger)">0</div></div>
+    <div class="card card-click" onclick="go('alertas',document.querySelector('.nav-btn:nth-child(7)'))"><div class="c-lbl" style="color:#6c3483"><i class="fas fa-ban"></i> Autoexcluídos</div><div class="c-val" id="k-autoexc" style="color:#6c3483">0</div></div>
+  </div>
+  <div class="grid-3">
+    <div class="card" style="height:360px;display:block"><h3 style="margin:0 0 8px;font-size:15px;text-align:center">Distribuição de Tiers</h3><div style="height:290px;position:relative"><canvas id="chartPie"></canvas></div></div>
+    <div class="tbl-box" style="height:360px;overflow-y:auto"><table class="tbl"><thead><tr><th style="text-align:left">Top 5 — Depósitos</th><th>Valor</th></tr></thead><tbody id="tb-top-dep"></tbody></table></div>
+    <div class="tbl-box" style="height:360px;overflow-y:auto"><table class="tbl"><thead><tr><th style="text-align:left">Top 5 — GGR</th><th>Lucro</th></tr></thead><tbody id="tb-top-ggr"></tbody></table></div>
+  </div>
+</div>
+
+<!-- PIPELINE -->
+<div id="v-pipeline" class="view">
+  <h2>Pipeline de Conversão</h2>
+  <div class="kpi-row" style="grid-template-columns:repeat(4,1fr)">
+    <div class="card"><div class="c-lbl">Leads Potenciais</div><div class="c-val" id="pipe-leads">0</div></div>
+    <div class="card"><div class="c-lbl">Tentativas</div><div class="c-val" id="pipe-try">0</div></div>
+    <div class="card"><div class="c-lbl">Contatos Feitos</div><div class="c-val" id="pipe-done">0</div></div>
+    <div class="card"><div class="c-lbl">Em Cadência</div><div class="c-val" id="pipe-cad">0</div></div>
+  </div>
+  <div class="kpi-row" style="grid-template-columns:repeat(3,1fr)">
+    <div class="card" style="border-top:4px solid var(--danger)"><div class="c-lbl">Taxa Break UP <span class="tip" title="Desistências / Tentativas">?</span></div><div class="c-val" id="rate-break" style="color:var(--danger)">0%</div><div class="c-sub" id="raw-break"></div></div>
+    <div class="card" style="border-top:4px solid var(--success)"><div class="c-lbl">Taxa Ativação <span class="tip" title="Ativados / Contatos">?</span></div><div class="c-val" id="rate-act" style="color:var(--success)">0%</div><div class="c-sub" id="raw-act"></div></div>
+    <div class="card" style="border-top:4px solid #7f8c8d"><div class="c-lbl">Taxa Inatividade <span class="tip" title="Inativos / Contatos">?</span></div><div class="c-val" id="rate-ina" style="color:#7f8c8d">0%</div><div class="c-sub" id="raw-ina"></div></div>
+  </div>
+  <div class="card" style="height:380px;display:block"><h3 style="margin:0 0 12px;font-size:15px;text-align:center">Funil de Conversão</h3><div style="height:310px;position:relative"><canvas id="chartPipeline"></canvas></div></div>
+</div>
+
+<!-- PLAYER -->
+<div id="v-player" class="view">
+  <h2>Visão Individual do Jogador</h2>
+  <div class="search-wrap">
+    <input type="text" class="search-inp" id="search-in" placeholder="Digite Nome ou ID do jogador..." onkeypress="if(event.key==='Enter') findP()">
+    <button class="search-btn" onclick="findP()"><i class="fas fa-search"></i></button>
+  </div>
+
+  <div id="p-res" class="p-grid">
+    <div class="p-left-col">
+      <div class="p-info">
+        <div class="avatar-container">
+          <div class="avatar"><i class="fas fa-user"></i></div>
+          <div id="badge-container" class="badge-mini"></div>
+        </div>
+        <h3 style="margin:10px 0 5px" id="pn">—</h3>
+        <div id="pid">ID: —</div>
+        <div id="p-status-badge" style="margin-bottom:12px"></div>
+        <div class="dates-container">
+          <div id="p-reg-date">Cadastro: —</div>
+          <div id="p-con-date">Contato VIP: —</div>
+          <div id="p-dias-inativo" style="margin-top:5px;font-weight:700"></div>
+        </div>
+        <div class="daily-box">
+          <strong style="font-size:12px;display:block;margin-bottom:5px">MÉDIAS DIÁRIAS (R$)</strong>
+          <table class="mini-tbl">
+            <thead><tr><th></th><th>Pré</th><th>Pós</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Dep</strong></td><td id="avg-dep-pre" class="val-pre">—</td><td id="avg-dep-pos" class="val-pos">—</td></tr>
+              <tr><td><strong>Wag</strong></td><td id="avg-wag-pre" class="val-pre">—</td><td id="avg-wag-pos" class="val-pos">—</td></tr>
+              <tr><td><strong>GGR</strong></td><td id="avg-ggr-pre" class="val-pre">—</td><td id="avg-ggr-pos" class="val-pos">—</td></tr>
+            </tbody>
+          </table>
+          <div style="font-size:10px;margin-top:7px;text-align:center;color:var(--text-sec)">Dias: <span id="days-pre">—</span> (Pré) / <span id="days-pos">—</span> (Pós)</div>
+        </div>
+
+        <!-- SMARTICO -->
+        <div class="smartico-box">
+          <div style="font-size:12px;font-weight:700;color:var(--text-sec);text-transform:uppercase;margin-bottom:8px"><i class="fas fa-gamepad" style="color:var(--primary);margin-right:5px"></i>Smartico CRM</div>
+          <div class="smartico-row"><span class="smartico-label">Pontos</span><span class="smartico-val" id="sm-pontos">— <small style="font-weight:normal;color:var(--text-sec)">(API pendente)</small></span></div>
+          <div class="smartico-row"><span class="smartico-label">Tier Smartico</span><span class="smartico-val" id="sm-tier">—</span></div>
+          <div class="smartico-row"><span class="smartico-label">Missões Ativas</span><span class="smartico-val" id="sm-missoes">—</span></div>
+          <div class="smartico-row"><span class="smartico-label">Streak</span><span class="smartico-val" id="sm-streak">—</span></div>
+        </div>
+
+        <!-- GENEROSITY -->
+        <div class="generosity-box">
+          <div class="gen-label"><i class="fas fa-gift" style="margin-right:4px"></i>Budget Generosity</div>
+          <div class="gen-amount" id="gen-budget">R$ 0,00</div>
+          <div style="font-size:11px;color:var(--text-sec)" id="gen-tier-pct">—</div>
+          <div id="gen-bloqueio" class="gen-blocked" style="display:none"><i class="fas fa-ban"></i> GGR negativo — sem elegibilidade para presente físico</div>
+        </div>
+      </div>
+
+      <div class="card" style="display:block;text-align:left;max-height:350px;overflow-y:auto;border-left:1px solid var(--border);border-right:1px solid var(--border)">
+        <h3 style="margin:0 0 12px;font-size:13px;color:var(--text-main);border-bottom:1px solid var(--border);padding-bottom:9px;text-transform:uppercase;letter-spacing:.5px">
+          <i class="fas fa-list-ul" style="color:var(--primary);margin-right:5px"></i> Histórico & Ações
+        </h3>
+        <ul id="p-actions-list" class="actions-list"></ul>
+        <div id="p-no-actions" class="no-actions" style="display:none">Nenhum registro encontrado.</div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:18px">
+      <div class="tier-box">
+        <div class="tier-header">
+          <span id="tc" style="color:var(--primary)">—</span>
+          <small style="color:var(--text-sec);font-weight:normal">Próximo: <span id="tn" style="font-weight:bold;color:var(--text-main)">—</span></small>
+        </div>
+        <div class="prog-bg"><div class="prog-fill" id="tf"></div></div>
+        <div style="text-align:right;font-size:12px;margin-top:5px;color:var(--text-sec)">Faltam <b id="tm" style="color:var(--primary)">—</b></div>
+      </div>
+
+      <div class="card" style="height:300px;display:block"><canvas id="chartBar"></canvas></div>
+
+      <div class="tbl-box">
+        <table class="tbl">
+          <thead><tr><th>Indicador</th><th>Pré (Histórico)</th><th>Pós (VIP)</th><th>Evolução</th></tr></thead>
+          <tbody>
+            <tr><td>Depósitos</td><td id="t-dep-1">—</td><td id="t-dep-2" style="font-weight:bold">—</td><td id="t-dep-3">—</td></tr>
+            <tr><td>Wager</td><td id="t-wag-1">—</td><td id="t-wag-2" style="font-weight:bold">—</td><td id="t-wag-3">—</td></tr>
+            <tr><td>GGR</td><td id="t-ggr-1">—</td><td id="t-ggr-2" style="font-weight:bold">—</td><td id="t-ggr-3">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ALERTAS -->
+<div id="v-alertas" class="view">
+  <h2>Central de Alertas & Status</h2>
+
+  <div class="kpi-row" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">
+    <div class="card" style="border-top:4px solid var(--danger)">
+      <div class="c-lbl" style="color:var(--danger)"><i class="fas fa-user-slash"></i> Churned (30d+)</div>
+      <div class="c-val" id="al-churned" style="color:var(--danger)">0</div>
+    </div>
+    <div class="card" style="border-top:4px solid var(--warning)">
+      <div class="c-lbl" style="color:var(--warning)"><i class="fas fa-clock"></i> Inativos (15-30d)</div>
+      <div class="c-val" id="al-inativo" style="color:var(--warning)">0</div>
+    </div>
+    <div class="card" style="border-top:4px solid #1a1a1a">
+      <div class="c-lbl"><i class="fas fa-ban"></i> Autoexcluídos</div>
+      <div class="c-val" id="al-autoexc">0</div>
+    </div>
+    <div class="card" style="border-top:4px solid #6c3483">
+      <div class="c-lbl" style="color:#6c3483"><i class="fas fa-lock"></i> Bloqueio SIGAP</div>
+      <div class="c-val" id="al-sigap" style="color:#6c3483">0</div>
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    <label>Filtrar por:</label>
+    <select id="al-filter" onchange="renderAlertas()">
+      <option value="all">Todos os alertas</option>
+      <option value="churned">Churned (30d+)</option>
+      <option value="inativo">Inativos (15-30d)</option>
+      <option value="autoexcluido">Autoexcluídos</option>
+      <option value="sigap">Bloqueio SIGAP</option>
+    </select>
+    <button class="filter-btn-reset" onclick="document.getElementById('al-filter').value='all';renderAlertas()">Limpar</button>
+    <span style="margin-left:auto;font-size:12px;color:var(--text-sec)" id="al-total-label"></span>
+  </div>
+
+  <div id="alertas-list" class="alerts-grid"></div>
+</div>
+
+<!-- LIST -->
+<div id="v-list" class="view">
+  <h2>Relatório Completo</h2>
+
+  <div class="filter-bar">
+    <label>Tier:</label>
+    <select id="fil-tier" onchange="renderList()">
+      <option value="">Todos</option>
+      <option>Bronze</option><option>Prata</option><option>Ouro</option>
+      <option>Platina</option><option>Diamante</option><option>Elite</option>
+    </select>
+    <label>GGR mín:</label>
+    <input type="number" id="fil-ggr" placeholder="0" style="width:100px" oninput="renderList()">
+    <label>Uplift mín:</label>
+    <input type="number" id="fil-uplift" placeholder="%" style="width:80px" oninput="renderList()">
+    <button class="filter-btn-reset" onclick="clearFilters()">Limpar</button>
+    <span id="list-count" style="margin-left:auto;font-size:12px;color:var(--text-sec)"></span>
+  </div>
+
+  <div class="tbl-box">
+    <table class="tbl">
+      <thead><tr>
+        <th style="text-align:left">Jogador</th>
+        <th>ID</th>
+        <th>Wager (Pré → Pós)</th>
+        <th>GGR (Pré → Pós)</th>
+        <th>Uplift</th>
+        <th>Tier</th>
+        <th>Status</th>
+      </tr></thead>
+      <tbody id="tb-list"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- COSTS -->
+<div id="v-costs" class="view">
+  <h2>Custos & Investimentos</h2>
+  <div class="kpi-row">
+    <div class="card card-click" onclick="showTotalCostBreakdown()">
+      <div class="c-lbl">Investimento Total <i class="fas fa-info-circle" style="margin-left:5px;font-size:12px"></i></div>
+      <div class="c-val" id="k-total-cost">R$ 0</div>
+    </div>
+  </div>
+  <div class="grid-2">
+    <div class="card" style="height:460px;display:block">
+      <h3 style="margin:0 0 10px;font-size:15px;text-align:center">Breakdown de Custos</h3>
+      <div style="height:380px;position:relative"><canvas id="chartCosts"></canvas></div>
+    </div>
+    <div class="tbl-box" style="height:460px;overflow-y:auto">
+      <h3 style="margin:14px 0 10px;font-size:15px;text-align:center;color:var(--text-main)">Top 5 — Maiores Investimentos</h3>
+      <table class="tbl">
+        <thead><tr><th style="text-align:left">Jogador</th><th>Total Investido</th></tr></thead>
+        <tbody id="tb-top-costs"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ABOUT / LOGS -->
+<div id="v-about" class="view">
+  <h2>Logs & Configuração</h2>
+  <div class="kpi-row">
+    <div class="card"><div class="c-lbl">Atualização</div><div class="c-val" style="font-size:16px" id="meta-date">—</div></div>
+    <div class="card"><div class="c-lbl">Registros</div><div class="c-val" id="meta-rows">0</div></div>
+    <div class="card"><div class="c-lbl">Sucesso</div><div class="c-val pos" id="meta-suc">0</div></div>
+    <div class="card"><div class="c-lbl">Erros</div><div class="c-val neg" id="meta-err">0</div></div>
+  </div>
+  <div class="settings-box">
+    <h3 style="margin-top:0;font-size:15px">Colunas Detectadas no CSV</h3>
+    <div id="all-headers" style="font-size:11px;font-family:Consolas,monospace;color:var(--text-main);padding:10px;background:var(--bg);border-radius:6px;max-height:80px;overflow-y:auto;border:1px solid var(--border)">Carregue um arquivo para ver as colunas.</div>
+  </div>
+  <div class="settings-box">
+    <h3 style="margin-top:0;font-size:15px">Personalização da Logo</h3>
+    <label class="btn-upload-label"><i class="fas fa-image"></i> Carregar Logo (PNG/JPG)<input type="file" style="display:none" accept="image/*" onchange="handleLogoUpload(this)"></label>
+  </div>
+  <div class="settings-box">
+    <h3 style="margin-top:0;font-size:14px;color:var(--text-sec)">Terminal de Logs</h3>
+    <div class="log-container" id="log-out"><div class="log-line">VIP Dashboard Pro v2.0 — Apostar.bet — Ready.</div></div>
+  </div>
+</div>
+
+</main>
+
+<script>
+const DATA_STORE = { db: [{"id":"1583522886","name":"Fabio Prandini","date":"18/12/2025","reg":"31/07/2025","actions":"10 giros no Fortune Tiger (0,40)\n45 giros no Gates of Olympus (0,20)\nBônus de correção manual (R$ 200)","costDetails":{"Cashback":5102.22,"Correção":200,"Rodadas":948,"Telefonia":156.9,"VOIP":0,"Encantamento":499,"Bônus":0,"Outros":0},"totalCost":6250.22,"textTotal":213,"opsCost":655.9,"pre":{"d":19466,"w":19986.5,"g":3240.05},"pos":{"d":23483,"w":26212.55,"g":3782.83}},{"id":"2041557283","name":"Victor Souza","date":"18/12/2025","reg":"03/07/2025","actions":"15 giros no Gates of Olympus (0,20)\n","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":3,"opsCost":0,"pre":{"d":21396,"w":94530.9,"g":3247.31},"pos":{"d":22126,"w":100807,"g":4445.78}},{"id":"124046892","name":"Giane","date":"18/12/2025","reg":"29/07/2025","actions":"Ação de encantamento (R$ 499)\n45 giros no Gates of Olympus (0,20)\n65 giros no Gates of Olympus (0,20)\nAção Cashback Antecipado (R$ 958,27)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":1479.27,"opsCost":0,"pre":{"d":92206.4,"w":1550892.49,"g":3982.51},"pos":{"d":109606.02,"w":1699066.94,"g":-7168.98}},{"id":"525615881","name":"Camila da Paz","date":"18/12/2025 ","reg":"01/08/2025","actions":"15 giros no Gates of Olympus (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":3,"opsCost":0,"pre":{"d":25303,"w":77486.58,"g":6545.95},"pos":{"d":25303,"w":78189.9,"g":-3041.06}},{"id":"71543370","name":"Blando Bernardino","date":"18/12/2025","reg":"01/08/2025","actions":"30 giros no Sweet Bonanza (0,20)\n45 giros no Gates of Olympus (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":15,"opsCost":0,"pre":{"d":21002,"w":88176.9,"g":10500.01},"pos":{"d":21352,"w":106407.4,"g":5387.23}},{"id":"355614851","name":"Icaro Ortiz Da Silva","date":"18/12/2025","reg":"14/12/2025","actions":"10 giros no Gates of Olympus (0,20)\n45 giros no Gates of Olympus (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":11,"opsCost":0,"pre":{"d":9892,"w":17460,"g":4907.85},"pos":{"d":18692,"w":44075.61,"g":10591.16}},{"id":"178060802","name":"Patricia Wanderley Da Silva Santos","date":"18/12/2025","reg":"10/12/2025","actions":"Ação Cashback Antecipado (R$ 3.239,99)\n10 giros no Fortune Tiger (0,40)\n45 giros no Gates of Olympus (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":3252.99,"opsCost":0,"pre":{"d":2829,"w":10635.95,"g":2329.97},"pos":{"d":47839,"w":154127.45,"g":6062.33}},{"id":"2125497314","name":"Silvane Cardoso Ferreira","date":"29/12/2025","reg":"06/12/2025","actions":"","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":0,"opsCost":0,"pre":{"d":10478.25,"w":49144.4,"g":1362.56},"pos":{"d":24555.92,"w":214414.8,"g":2687.92}},{"id":"1729231695","name":"Talles Augusto Coelho Neto Da Cruz","date":"18/12/2025","reg":"11/12/2025","actions":"5 giros no Aviator (R$ 1,00)\n45 giros no Gates of Olympus (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":14,"opsCost":0,"pre":{"d":6793,"w":44061.95,"g":1359.62},"pos":{"d":16398,"w":117788.5,"g":9391.05}},{"id":"1367666510","name":"Glaucia Infanti","date":"30/12/2025","reg":"11/12/2025","actions":"Ação Cashback Antecipado (R$ 781,45)\n30 giros no Sweet Bonanza (0,20)\n45 giros no Gates of Olympus (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":796.45,"opsCost":0,"pre":{"d":25329,"w":35963.44,"g":-3573},"pos":{"d":37353,"w":192177.69,"g":5195.8}},{"id":"1062656700","name":"Lucas Weber","date":"29/12/2025","reg":"31/07/2025","actions":"15 giros no Gates of Olympus (0,20)\n45 giros no Gates of Olympus (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":12,"opsCost":0,"pre":{"d":32100,"w":97192.25,"g":-496.68},"pos":{"d":37900,"w":110209.15,"g":10326.7}},{"id":"539873031","name":"Luis Roberto Freitas Junior","date":"29/12/2025","reg":"24/12/2025","actions":"5 giros no Aviator (R$ 1,00)\n45 giros no Gates of Olympus (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":14,"opsCost":0,"pre":{"d":3566,"w":1128,"g":-369.15},"pos":{"d":4132,"w":4578.26,"g":-272.86}},{"id":"1402504","name":"Felipe Pires","date":"30/12/2025","reg":"03/07/2025","actions":"","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":0,"opsCost":0,"pre":{"d":34703,"w":216431.4,"g":4388.89},"pos":{"d":48903,"w":301136,"g":19625.12}},{"id":"1092137389","name":"Giselle Santiago Azevedo","date":"30/12/2025","reg":"10/12/2025","actions":"10 giros no Fortune Tiger (0,40)\n45 giros no Gates of Olympus (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":13,"opsCost":0,"pre":{"d":2390,"w":5207.7,"g":1141.91},"pos":{"d":6180,"w":29327.44,"g":6796.2}},{"id":"1230414413","name":"Rony Rodrigues Cavalcanti","date":"29/12/2025","reg":"24/12/2025","actions":"5 giros no Aviator (R$ 1,00)\n45 giros no Gates of Olympus (0,20)\n65 giros no Gates of Olympus (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":27,"opsCost":0,"pre":{"d":10050,"w":70367.7,"g":-750.33},"pos":{"d":20569,"w":126021.32,"g":4397.91}},{"id":"1868421197","name":"Luiz Henrique Mendes","date":"30/12/2025","reg":"24/12/2025","actions":"5 giros no Aviator (R$ 1,00)\n45 giros no Gates of Olympus (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":14,"opsCost":0,"pre":{"d":15672,"w":17818,"g":-582.55},"pos":{"d":32106,"w":42958,"g":3594.54}},{"id":"436455620","name":"Alice Thomaz","date":"5/1/2026","reg":"10/12/2025","actions":"10 giros no Fortune Dragon (0,40)\n45 giros no Gates of Olympus (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":13,"opsCost":0,"pre":{"d":1770,"w":18553.1,"g":1745},"pos":{"d":2820,"w":28991.4,"g":3427.4}},{"id":"808012702","name":"Washington Avelino","date":"30/12/2025","reg":"23/12/2025","actions":"","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":0,"opsCost":0,"pre":{"d":4420,"w":8726.6,"g":2519.95},"pos":{"d":8110,"w":39092.5,"g":5109.67}},{"id":"1508092378","name":"Marcia Manhaes Rangel Almeida","date":"29/12/2025","reg":"12/12/2025","actions":"10 giros no Fortune Tiger (0,40)\n45 giros no Gates of Olympus (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":13,"opsCost":0,"pre":{"d":3271,"w":12291.4,"g":-128.1},"pos":{"d":4391,"w":14143.2,"g":-209.98}},{"id":"730229118","name":"Nilton Cesar Dos Santos","date":"30/12/2025","reg":"19/12/2025","actions":"5 giros no Aviator (R$ 1,00)\n45 giros no Gates of Olympus (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":14,"opsCost":0,"pre":{"d":1000,"w":1542,"g":1000},"pos":{"d":1061,"w":1789.2,"g":1075.8}},{"id":"955610494","name":"Fernando Jose","date":"29/12/2025","reg":"14/12/2025","actions":"5 giros no Aviator (R$ 1,00)\n45 giros no Gates of Olympus (0,20)\n20 giros no Sugar Rush (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":18,"opsCost":0,"pre":{"d":9739,"w":267394.96,"g":-4151},"pos":{"d":32590,"w":535016.68,"g":9841.51}},{"id":"1170628287","name":"Sinaldo Lima","date":"30/12/2025","reg":"29/07/2025","actions":"45 giros no Gates of Olympus (0,20)\n45 giros no Gates of Olympus (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":18,"opsCost":0,"pre":{"d":3793.9,"w":18042.55,"g":1583.75},"pos":{"d":4103.9,"w":20941.55,"g":255.88}},{"id":"721699454","name":"Lucas Barbosa Bertolim","date":"07/01/2026","reg":"04/01/2026","actions":"45 giros no Gates of Olympus (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":9,"opsCost":0,"pre":{"d":7690,"w":13935,"g":-680.28},"pos":{"d":8455,"w":14517.3,"g":-636.1}},{"id":"1798569323","name":"Ana Paula Conceição De Souza","date":"08/01/2026","reg":"11/12/2025","actions":"Ação Cashback Antecipado (R$ 102,65)\n65 giros no Gates of Olympus (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":115.65,"opsCost":0,"pre":{"d":9394.4,"w":100365,"g":4833.39},"pos":{"d":16938.67,"w":170422.5,"g":10495.84}},{"id":"1179442030","name":"Jamily Rebeca Lima De Assis","date":"05/01/2026","reg":"13/12/2025","actions":"10 giros no Fortune Tiger (0,40)\n45 giros no Gates of Olympus (0,20)\n45 giros no Gates of Olympus (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":22,"opsCost":0,"pre":{"d":28973.43,"w":69944.8,"g":-9836.31},"pos":{"d":35874.93,"w":175888.94,"g":742.97}},{"id":"190743641","name":"Matheus Pavao De Freitas","date":"09/01/2026","reg":"30/12/2025","actions":"45 giros no Gates of Olympus (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":9,"opsCost":0,"pre":{"d":2990,"w":11866,"g":1011.69},"pos":{"d":3378.95,"w":19092.09,"g":2871.86}},{"id":"1481464442","name":"Caroline Cordeiro De Mello","date":"09/01/2026","reg":"15/12/2025","actions":"45 giros no Gates of Olympus (0,20)\n","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":9,"opsCost":0,"pre":{"d":2905,"w":24573.8,"g":683.93},"pos":{"d":4162,"w":36444.8,"g":2242.02}},{"id":"772317604","name":"Rosilane De Fatima Andrade Figueiredo","date":"09/01/2026","reg":"12/12/2025","actions":"45 giros no Gates of Olympus (0,20)\n","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":9,"opsCost":0,"pre":{"d":1880,"w":32398.1,"g":-5459.48},"pos":{"d":6920,"w":99664.05,"g":-4703.64}},{"id":"1817736165","name":"Karine Juliete Costa Cardoso","date":"09/01/2026","reg":"18/06/2025","actions":"Ação Cashback Antecipado (R$ 19,86)\n45 giros no Gates of Olympus (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":28.86,"opsCost":0,"pre":{"d":33465.9,"w":161416.4,"g":2112.95},"pos":{"d":41488.09,"w":213092,"g":7983.95}},{"id":"360444532","name":"Michelle Aparecida Pimentel Cuva","date":"10/01/2026","reg":"11/12/2025","actions":"45 giros no Gates of Olympus (0,20)\n","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":9,"opsCost":0,"pre":{"d":1750,"w":4116.7,"g":189.91},"pos":{"d":3501,"w":11028.7,"g":1509.38}},{"id":"844734124","name":"Sandra Graciele Haubert","date":"09/01/2026","reg":"20/12/2025","actions":"45 giros no Gates of Olympus (0,20)\n","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":9,"opsCost":0,"pre":{"d":950,"w":5854.3,"g":-667.01},"pos":{"d":10823,"w":81896.1,"g":4100.42}},{"id":"1864358100","name":"Mara Lima Barros","date":"09/01/2026","reg":"11/12/2025","actions":"45 giros no Gates of Olympus (0,20)\n","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":9,"opsCost":0,"pre":{"d":26175,"w":90811.1,"g":-8054.57},"pos":{"d":39212,"w":159412.4,"g":-6234.63}},{"id":"43899027","name":"Douglas Angelis","date":"09/01/2026","reg":"11/12/2025","actions":"","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":0,"opsCost":0,"pre":{"d":3854,"w":51345.71,"g":-1992.19},"pos":{"d":7806,"w":107724.57,"g":547.05}},{"id":"1701694751","name":"Ademar Henrique Soares","date":"09/01/2026","reg":"09/12/2025","actions":"45 giros no Gates of Olympus (0,20)\n","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":9,"opsCost":0,"pre":{"d":2000,"w":1000,"g":1899.99},"pos":{"d":2311,"w":30789.87,"g":4313.45}},{"id":"854950105","name":"Juliana Regina Saturnino Da Silva","date":"12/01/2026","reg":"20/12/2025","actions":"45 giros no Gates of Olympus (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":9,"opsCost":0,"pre":{"d":975,"w":6842.25,"g":-624.07},"pos":{"d":1735,"w":14671.45,"g":-49.18}},{"id":"137084007","name":"Wine Tamizia Goncalves Moreira","date":"12/01/2026","reg":"10/12/2025","actions":"45 giros no Gates of Olympus (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":9,"opsCost":0,"pre":{"d":4826,"w":7409.25,"g":-283.38},"pos":{"d":12007,"w":67151.45,"g":378.39}},{"id":"1452735177","name":"Rosana Celeste Costa","date":"12/01/2026","reg":"11/12/2025","actions":"45 giros no Gates of Olympus (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":9,"opsCost":0,"pre":{"d":2169,"w":14159.53,"g":-330.36},"pos":{"d":3349,"w":30313.53,"g":2277.02}},{"id":"310179069","name":"Leticia Da Silva Oliveira","date":"12/01/2026","reg":"11/12/2025","actions":"30 giros no Sweet Bonanza (0,20)\n","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":6,"opsCost":0,"pre":{"d":10418,"w":14553.7,"g":-1944.86},"pos":{"d":24248,"w":111549.15,"g":35.25}},{"id":"1383457926","name":"Cristiane Candido Da Silva Da Silva","date":"13/01/2026","reg":"11/12/2025","actions":"30 giros no Sweet Bonanza (0,20)\n","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":6,"opsCost":0,"pre":{"d":14276,"w":112898.4,"g":-3966.44},"pos":{"d":19675,"w":162184.75,"g":-3400.44}},{"id":"587419073","name":"Victor Gabriel Mendes Rojas","date":"13/01/2026","reg":"30/07/2025","actions":"45 giros no Gates of Olympus (0,20)\n","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":9,"opsCost":0,"pre":{"d":1831,"w":11639.19,"g":488.87},"pos":{"d":1933.8,"w":12292.04,"g":511.71}},{"id":"325630686","name":"Gabriela Silva Da Conceicao","date":"13/01/2026","reg":"10/12/2025","actions":"45 giros no Gates of Olympus (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":9,"opsCost":0,"pre":{"d":6844,"w":90396.27,"g":1859.89},"pos":{"d":14305,"w":156739.52,"g":715.84}},{"id":"2136125544","name":"Linda Goncalves Lourenco","date":"13/01/2026","reg":"20/12/2025","actions":"30 giros no Sweet Bonanza (0,20)\n","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":6,"opsCost":0,"pre":{"d":5643.69,"w":28256.67,"g":819.1},"pos":{"d":6050.66,"w":33063.52,"g":1577.54}},{"id":"1831766500","name":"Michelle Christine Bueno Albino","date":"13/01/2026","reg":"17/12/2025","actions":"45 giros no Gates of Olympus (0,20)\n","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":9,"opsCost":0,"pre":{"d":12137,"w":45759.15,"g":-88.59},"pos":{"d":14172,"w":73492.15,"g":1566.23}},{"id":"1469811102","name":"Ana Maria Trajano Da Costa","date":"13/01/2026","reg":"12/12/2025","actions":"45 giros no Gates of Olympus (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":9,"opsCost":0,"pre":{"d":6395,"w":38939.35,"g":-810.36},"pos":{"d":13524,"w":104482.95,"g":1335.67}},{"id":"1702079970","name":"Francisco Jose Dias Magalhaes","date":"13/01/2026","reg":"12/12/2025","actions":"30 giros no Sweet Bonanza (0,20)\n","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":6,"opsCost":0,"pre":{"d":2265,"w":15990.35,"g":-4096.87},"pos":{"d":3435,"w":53930.66,"g":-3516.74}},{"id":"198136291","name":"Rosemary Madalena Burgarelli","date":"13/01/2026","reg":"13/12/2025","actions":"","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":0,"opsCost":0,"pre":{"d":5439,"w":47443.3,"g":3312.21},"pos":{"d":11662,"w":127538.55,"g":-258.65}},{"id":"792129997","name":"Carmine Dewes Spohr","date":"13/01/2026","reg":"10/12/2025","actions":"30 giros no Sweet Bonanza (0,20)\n","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":6,"opsCost":0,"pre":{"d":9611,"w":62235.1,"g":3485.62},"pos":{"d":15078,"w":130440.95,"g":4110.52}},{"id":"498703419","name":"Leticia Bonini Possetti","date":"14/01/2026","reg":"10/12/2025","actions":"30 giros no Sweet Bonanza (0,20)\n","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":6,"opsCost":0,"pre":{"d":7034,"w":54579.95,"g":3944.67},"pos":{"d":10644,"w":141902.5,"g":7835.07}},{"id":"753267815","name":"Daniel Aparecido Da Silva","date":"14/01/2026","reg":"27/12/2025","actions":"","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":0,"opsCost":0,"pre":{"d":4600,"w":17191.05,"g":-328.35},"pos":{"d":7800,"w":38127.65,"g":-48.52}},{"id":"1889906408","name":"Juliana Dantas De Matos","date":"15/01/2026","reg":"11/12/2025","actions":"","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":0,"opsCost":0,"pre":{"d":1345,"w":15864.05,"g":-697.97},"pos":{"d":2647,"w":32155.06,"g":1077.42}},{"id":"609782220","name":"Marilene Ferreira De Souza","date":"15/01/2026","reg":"20/12/2025","actions":"","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":0,"opsCost":0,"pre":{"d":4876,"w":22381.7,"g":-807.36},"pos":{"d":8056,"w":39525.95,"g":1578.25}},{"id":"824665066","name":"Camila Maria Ferreira De Freitas Portugal","date":"15/01/2026","reg":"04/01/2026","actions":"","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":0,"opsCost":0,"pre":{"d":2760,"w":6581.35,"g":-2575.06},"pos":{"d":3083,"w":10261.55,"g":-2585.03}},{"id":"1677524472","name":"Nicelaine Duarte Da Silva","date":"19/01/2026","reg":"11/12/2025","actions":"50 giros no Gates of Olympus (0,20)\n","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":10,"opsCost":0,"pre":{"d":2503,"w":10378.55,"g":-6328.73},"pos":{"d":2967,"w":19184.85,"g":-7108.87}},{"id":"1274988428","name":"Cristiane Aparecida Ferreira","date":"20/01/2026","reg":"14/01/2026","actions":"50 giros no Gates of Olympus (0,20)\n","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":10,"opsCost":0,"pre":{"d":3796,"w":10275.95,"g":-1016.66},"pos":{"d":4851,"w":20162.25,"g":-676.18}},{"id":"1878783701","name":"Fernando Araujo Wiechaz","date":"19/01/2026","reg":"10/12/2025","actions":"80 giros nos Zeus vs Hades (0,10)\n","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":8,"opsCost":0,"pre":{"d":4814,"w":14367.2,"g":-1089.34},"pos":{"d":5814,"w":26419.6,"g":453.88}},{"id":"1802558082","name":"Marina Bulgarelli","date":"19/01/2026","reg":"11/12/2025","actions":"80 giros nos Zeus vs Hades (0,10)\n","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":8,"opsCost":0,"pre":{"d":630,"w":7393.95,"g":487.65},"pos":{"d":1100,"w":55591.7,"g":3443.4}},{"id":"1845992399","name":"Sueli Roque Da Silva","date":"20/01/2026","reg":"15/01/2026","actions":"100 giros no Gates of Olympus (0,20)\n","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":20,"opsCost":0,"pre":{"d":7700,"w":11753.3,"g":-3855.54},"pos":{"d":8700,"w":30664.1,"g":1503.18}},{"id":"838563583","name":"Meirilane Carvalho Barbosa","date":"19/01/2026","reg":"16/01/2026","actions":"","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":0,"opsCost":0,"pre":{"d":5000,"w":683.2,"g":-963.07},"pos":{"d":5000,"w":13471.45,"g":5006.38}},{"id":"1727372125","name":"Giovanni Mantovani","date":"19/01/2026","reg":"03/08/2025","actions":"50 giros no Gates of Olympus (0,20)\n","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":10,"opsCost":0,"pre":{"d":9000,"w":19397.61,"g":7499.55},"pos":{"d":9000,"w":19753.01,"g":7758.79}},{"id":"22655152","name":"Gleudson De Moura Dias","date":"21/01/2026","reg":"17/01/2026","actions":"50 giros no Gates of Olympus (0,20)\n","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":10,"opsCost":0,"pre":{"d":6500,"w":30634.2,"g":-2007.66},"pos":{"d":8734,"w":107524.4,"g":-15967.48}},{"id":"2007550770","name":"Railson Possos Penna","date":"20/01/2026","reg":"18/01/2026","actions":"20 giros no Sweet Bonanza (0,20)\n","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":4,"opsCost":0,"pre":{"d":2390,"w":8893.9,"g":76.25},"pos":{"d":8444.79,"w":66973.92,"g":669.13}},{"id":"252311668","name":"Thaiane Figueiredo Ramos","date":"20/01/2026","reg":"11/12/2026","actions":"50 giros no Gates of Olympus (0,20)\n","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":10,"opsCost":0,"pre":{"d":6837,"w":35304.7,"g":-6153.31},"pos":{"d":9420,"w":50297.25,"g":-5083.72}},{"id":"546875421","name":"Wilter Loureiro da Cunha","date":"20/01/2026","reg":"31/07/2025","actions":"100 giros no Gates of Olympus (0,20)\n","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":20,"opsCost":0,"pre":{"d":41369,"w":181174.9,"g":7606.15},"pos":{"d":42279,"w":184122.4,"g":8292.99}},{"id":"1050979753","name":"Daiane Antunes Ferreira","date":"20/01/2026 ","reg":"11/12/2025","actions":"50 giros no Gates of Olympus (0,20)\n","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":10,"opsCost":0,"pre":{"d":11526,"w":46777.05,"g":1138.97},"pos":{"d":11586,"w":47611.95,"g":1406.6}},{"id":"330490241","name":"Edmilson Pigentini","date":"21/01/2026","reg":"14/01/2026","actions":"50 giros no Gates of Olympus (0,20)\n","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":10,"opsCost":0,"pre":{"d":11220,"w":150530.8,"g":10013.71},"pos":{"d":11020,"w":150538.8,"g":10019.91}},{"id":"1496491752","name":"Raquel Ferreira De Oliveira","date":"21/01/2026","reg":"11/12/2025","actions":"50 giros no Gates of Olympus (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":10,"opsCost":0,"pre":{"d":3290,"w":19351.53,"g":189.81},"pos":{"d":6100,"w":53900.27,"g":1806.77}},{"id":"105777177","name":"Juliano Vieira Nunes","date":"21/01/2026","reg":"07/01/2026","actions":"50 giros no Gates of Olympus (0,20)\n","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":10,"opsCost":0,"pre":{"d":2856,"w":21839,"g":-1948.5},"pos":{"d":3193,"w":22854.3,"g":-1669.55}},{"id":"1111670210","name":"Veronica Soares Do Nascimento","date":"21/01/2026","reg":"12/12/2025","actions":"50 giros no Gates of Olympus (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":10,"opsCost":0,"pre":{"d":6771.05,"w":29100.75,"g":-284.2},"pos":{"d":9375.05,"w":69643.05,"g":2994.06}},{"id":"563992922","name":"Cristiane Albertini De Souza","date":"22/01/2026","reg":"11/12/2025","actions":"40 giros no Ratinho Sortudo (0,10)\n","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":4,"opsCost":0,"pre":{"d":9247,"w":33121.05,"g":1216.98},"pos":{"d":9967,"w":38175.55,"g":849.62}},{"id":"1141445210","name":"Karioma Bezerra Arruda","date":"22/01/2026","reg":"15/12/2025","actions":"50 giros no Gates of Olympus (0,20)\n","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":10,"opsCost":0,"pre":{"d":2829,"w":24201.7,"g":233.89},"pos":{"d":3139,"w":26100,"g":571.73}},{"id":"1121038555","name":"Claudinei Batista Pereira","date":"22/01/2026","reg":"21/01/2026","actions":"20 giros no Ratinho Sortudo (0,10)\n","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":2,"opsCost":0,"pre":{"d":9220,"w":21241.6,"g":4843.27},"pos":{"d":10170,"w":24142.6,"g":4747.91}},{"id":"2000629062","name":"Mateus Moreira Soares","date":"22/01/2026","reg":"17/01/2026","actions":"50 giros no Gates of Olympus (0,20)\n","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":10,"opsCost":0,"pre":{"d":6029,"w":52165.4,"g":914.13},"pos":{"d":14813,"w":226535.65,"g":7634.66}},{"id":"1082755854","name":"Willian Costa Vasconcelos","date":"22/01/2026","reg":"21/01/2026","actions":"20 giros no Ratinho Sortudo (0,10)\n","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":2,"opsCost":0,"pre":{"d":1780,"w":7398.8,"g":1695},"pos":{"d":2160,"w":9001.01,"g":1805.78}},{"id":"391856989","name":"Joceli Pereira Dos Santos","date":"22/01/2026","reg":"1/1/2026","actions":"30 giros no Sweet Bonanza (0,20)\n","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":6,"opsCost":0,"pre":{"d":1450,"w":5853.8,"g":180.8},"pos":{"d":1480,"w":7296.8,"g":548.61}},{"id":"1788673671","name":"Edma Cilene Dutra Neves Mendes","date":"22/01/2026","reg":"10/12/2025","actions":"30 giros no Sweet Bonanza (0,20)\n","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":6,"opsCost":0,"pre":{"d":8959,"w":39102.55,"g":3971.92},"pos":{"d":9289,"w":53979.6,"g":5335.67}},{"id":"419313834","name":"Marcos Fabio Pacheco Filho","date":"26/01/2026","reg":"23/01/2026","actions":"30 giros no Sweet Bonanza (0,20)\n","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":6,"opsCost":0,"pre":{"d":1500,"w":3995.2,"g":401.92},"pos":{"d":1500,"w":4038.75,"g":420.99}},{"id":"711044035","name":"Wagner Bispo de Castro","date":"09/01/2026","reg":"11/01/2026","actions":"","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":0,"opsCost":0,"pre":{"d":4075,"w":25664.2,"g":267.76},"pos":{"d":4075,"w":25723.1,"g":301.17}},{"id":"573915973","name":"Alyne Nayara Ribeiro","date":"19/01/2026","reg":"13/12/2025","actions":"50 giros no Gates of Olympus (0.20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":10,"opsCost":0,"pre":{"d":7460,"w":21745.7,"g":2442.78},"pos":{"d":8960,"w":31039.35,"g":4346.76}},{"id":"1315100032","name":"Daniel Oliveira Gomes","date":"14/01/2026","reg":"12/01/2026","actions":"","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":0,"opsCost":0,"pre":{"d":1259,"w":11366.4,"g":-1143.12},"pos":{"d":6531,"w":127631.12,"g":2911.26}},{"id":"242072284","name":"Emilian Silva dos Santos","date":"20/01/2026","reg":"12/01/2026","actions":"30 giros Touro sortudo","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":0,"opsCost":0,"pre":{"d":2055,"w":22120.5,"g":-208.07},"pos":{"d":2085,"w":41386.8,"g":1937.62}},{"id":"1306066369","name":"Janaina Duarte Da Silva","date":"28/01/2026","reg":"27/01/2026","actions":"30 giros no Sweet Bonanza (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":6,"opsCost":0,"pre":{"d":1500,"w":1137.2,"g":399.05},"pos":{"d":9900,"w":35920.4,"g":-2274.31}},{"id":"500509100","name":"Carla Vanessa Lopes Lima Ribeiro","date":"28/01/2026","reg":"26/01/2026","actions":"30 giros no Sweet Bonanza (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":6,"opsCost":0,"pre":{"d":1525,"w":3491.1,"g":1214.53},"pos":{"d":2525,"w":36174.7,"g":2851.78}},{"id":"1798206198","name":"Andrea Santos Soares","date":"28/01/2026","reg":"26/01/2026","actions":"30 giros no Sweet Bonanza (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":6,"opsCost":0,"pre":{"d":1845.87,"w":7059.1,"g":-1252.72},"pos":{"d":17647.28,"w":128525.55,"g":4104.58}},{"id":"1899143590","name":"Lais Vaz Teixeira Teles","date":"28/01/2026","reg":"27/01/2026","actions":"30 giros no Sweet Bonanza (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":6,"opsCost":0,"pre":{"d":1000,"w":495.2,"g":2.17},"pos":{"d":7100,"w":27732.82,"g":890.65}},{"id":"1878897996","name":"Aline Siqueira Andrade","date":"28/01/2026","reg":"24/01/2026","actions":"30 giros no Sweet Bonanza (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":6,"opsCost":0,"pre":{"d":2531,"w":12356.4,"g":-186.12},"pos":{"d":13794,"w":138091.8,"g":13382.28}},{"id":"774837689","name":"Maria Gardenia Mendes De Mesquita","date":"28/01/2026","reg":"26/01/2026","actions":"30 giros no Sweet Bonanza (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":6,"opsCost":0,"pre":{"d":2000,"w":18522.4,"g":-2689.97},"pos":{"d":5000,"w":182891.3,"g":2263.55}},{"id":"1323258517","name":"Jane Kelly Oliveira Silva Aguiar","date":"28/01/2026","reg":"26/01/2026","actions":"30 giros no Sweet Bonanza (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":6,"opsCost":0,"pre":{"d":1000,"w":6429.4,"g":692.71},"pos":{"d":15000,"w":316502.15,"g":8432.4}},{"id":"578882044","name":"Bruno Lima Barros","date":"29/01/2026","reg":"26/01/2026","actions":"30 giros no Sweet Bonanza (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":6,"opsCost":0,"pre":{"d":2711,"w":11542.8,"g":676.57},"pos":{"d":6399.82,"w":33190.9,"g":4953.33}},{"id":"969152578","name":"Cean Nadabi Casa Granda Da Silva","date":"29/01/2026","reg":"26/01/2025","actions":"30 giros no Sweet Bonanza (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":6,"opsCost":0,"pre":{"d":2070,"w":6179.6,"g":-2093.68},"pos":{"d":7686,"w":25561.1,"g":343.42}},{"id":"534896168","name":"Caroline Xavier Martin","date":"29/01/2026","reg":"27/01/2026","actions":"30 giros no Sweet Bonanza (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":6,"opsCost":0,"pre":{"d":3380,"w":18198.4,"g":-708.4},"pos":{"d":40468,"w":203159,"g":-6615.85}},{"id":"671904389","name":"Tacia Mizaela Pereira De Oliveira","date":"29/01/2026","reg":"26/01/2026","actions":"30 giros no Sweet Bonanza (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":6,"opsCost":0,"pre":{"d":180,"w":5947.6,"g":212.04},"pos":{"d":850,"w":15224.7,"g":1738.76}},{"id":"592267179","name":"Thais Fernanda Santana Goslar","date":"29/01/2026","reg":"26/01/2026","actions":"30 giros no Sweet Bonanza (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":6,"opsCost":0,"pre":{"d":6399,"w":2011,"g":-1078.5},"pos":{"d":23440,"w":52024.5,"g":605.12}},{"id":"1935065161","name":"Ana Carolina Soares","date":"29/01/2026","reg":"27/01/2026","actions":"30 giros no Sweet Bonanza (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":6,"opsCost":0,"pre":{"d":2300,"w":17251,"g":-6392.54},"pos":{"d":4550,"w":384201.1,"g":-32069.49}},{"id":"40080714","name":"Lucas Henrique Dos Santos Pereira","date":"29/01/2026","reg":"27/01/2026","actions":"30 giros no Sweet Bonanza (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":6,"opsCost":0,"pre":{"d":1000,"w":5707.4,"g":-2000.3},"pos":{"d":2450,"w":13225.3,"g":407.28}},{"id":"1906430477","name":"Leandra De Souza Botelho","date":"30/01/2026","reg":"26/01/2026","actions":"50 giros no Gates Of Olympus (0.20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":10,"opsCost":0,"pre":{"d":1000,"w":10953.6,"g":-8244.14},"pos":{"d":9100,"w":153276.3,"g":26396.94}},{"id":"815195700","name":"Dayane Cristina Gontijo Ferreira","date":"30/01/2026","reg":"26/01/2026","actions":"30 giros no Sweet Bonanza (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":6,"opsCost":0,"pre":{"d":1030,"w":10969.2,"g":1065.35},"pos":{"d":2870,"w":95182,"g":4975.77}},{"id":"892364812","name":"Claudio Marcio Turke","date":"30/01/2026","reg":"26/01/2026","actions":"30 giros no Sweet Bonanza (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":6,"opsCost":0,"pre":{"d":2900,"w":12496,"g":2147.61},"pos":{"d":1000,"w":36129.4,"g":6882.86}},{"id":"1158197361","name":"Cleiton Vieira Araujo","date":"30/01/2026","reg":"12/1/2026","actions":"30 giros no Sweet Bonanza (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":6,"opsCost":0,"pre":{"d":3610,"w":8923,"g":-685.14},"pos":{"d":0,"w":22817.7,"g":1103.37}},{"id":"1189426069","name":"Wagner","date":"30/01/2026","reg":"28/01/2026","actions":"30 giros no Sweet Bonanza (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":6,"opsCost":0,"pre":{"d":1250,"w":1675,"g":520.2},"pos":{"d":2250,"w":8692,"g":3565.22}},{"id":"63538045","name":"Raynara Ninfa Nelson De Oliveira Conceicao","date":"30/01/2026","reg":"21/01/2026","actions":"30 giros no Sweet Bonanza (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":6,"opsCost":0,"pre":{"d":2100,"w":18542.8,"g":3855.8},"pos":{"d":2287,"w":42374.7,"g":2565.64}},{"id":"1363614864","name":"Toni Roger De Sousa Do Sacramento","date":"30/01/2026","reg":"26/01/2026","actions":"30 giros no Sweet Bonanza (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":6,"opsCost":0,"pre":{"d":1450,"w":15328.2,"g":-2537.65},"pos":{"d":3597,"w":24307.8,"g":51.33}},{"id":"1281072213","name":"Adriana","date":"30/01/2026","reg":"11/12/2025","actions":"30 giros no Sweet Bonanza (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":6,"opsCost":0,"pre":{"d":1675,"w":9473.9,"g":891.63},"pos":{"d":1675,"w":22206.25,"g":1534.06}},{"id":"131135751","name":"Adriana Ribeiro Da Silva","date":"02/02/2026","reg":"26/01/2026","actions":"30 giros no Sweet Bonanza (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":6,"opsCost":0,"pre":{"d":2000,"w":1581.3,"g":-329.24},"pos":{"d":2650,"w":-452,"g":2945.45}},{"id":"1451260036","name":"Rodrigo","date":"02/02/2026","reg":"25/01/2026","actions":"100 giros em Gates of Olympus (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":20,"opsCost":0,"pre":{"d":9000,"w":18500,"g":9000},"pos":{"d":24000,"w":130395,"g":24000}},{"id":"943719483","name":"Cilze Adriana Ferreira","date":"02/02/2026","reg":"26/01/2026","actions":"30 Giros em Sweet Bonanza (0,20) + Bonus VIP 145 Giros (Sweet bonanza) ","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":6,"opsCost":0,"pre":{"d":2900,"w":10299.1,"g":707},"pos":{"d":16600,"w":108865.35,"g":4042.63}},{"id":"2011373840","name":"Alberto Rodrigues Da Fonseca","date":"02/02/2026","reg":"26/01/2026","actions":"30 giros no Sweet Bonanza (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":6,"opsCost":0,"pre":{"d":1590,"w":8741.8,"g":-208.99},"pos":{"d":8110,"w":38876.2,"g":-2697}},{"id":"1763599124","name":"Valeria Simoes ","date":"02/02/2026","reg":"26/01/2026","actions":"50 giros em Gates of Olympus (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":10,"opsCost":0,"pre":{"d":1340,"w":17433.6,"g":-279.17},"pos":{"d":6730,"w":48647.6,"g":179.03}},{"id":"1565532281","name":"Luana Parga ","date":"02/02/2026","reg":"31/01/2026","actions":"30 giros no Sweet Bonanza (0,20)","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":6,"opsCost":0,"pre":{"d":378,"w":6179.85,"g":-790.08},"pos":{"d":2108,"w":15364.65,"g":908}},{"id":"1497316139","name":"Lauriane Lima ","date":"03/02/2026","reg":"31/01/2026","actions":"30 Giros no Sweet Bonanza + 100 giros no Gates of Olympics ","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":0,"opsCost":0,"pre":{"d":378,"w":6179.85,"g":-790.08},"pos":{"d":4520,"w":33375,"g":3273}},{"id":"1449710647","name":"Cleidiane Aparecida Freitas Genaro","date":"03/02/2026","reg":"27/01/2026","actions":"30 Giros no Sweet Bonanza","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":0,"opsCost":0,"pre":{"d":200,"w":17053,"g":-1470.03},"pos":{"d":1600,"w":19397.6,"g":-1370}},{"id":"218150807","name":"Juarez Alberto Rocha","date":"03/02/2026","reg":"26/01/2026","actions":"50 Giros no Sweet Bonanza ","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":0,"opsCost":0,"pre":{"d":1100,"w":581.53,"g":97.74},"pos":{"d":3400,"w":13061.36,"g":1773.7}},{"id":"1429389893","name":"Carolina Oliveira ","date":"03/02/2026","reg":"30/01/2026 ","actions":"50 Giros de Gates of Olympus + 100 Giros de Gates of Olympus ","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":0,"opsCost":0,"pre":{"d":1951,"w":19174.3,"g":2563.56},"pos":{"d":6747,"w":52567.8,"g":6042}},{"id":"878242704","name":"Maria Aparecida dos santos ","date":"03/02/2026","reg":"02/02/2026","actions":"50 Giros de Gates of Olympus + 100 Giros de Gates of Olympus ","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":0,"opsCost":0,"pre":{"d":1308,"w":16396.6,"g":1308},"pos":{"d":5147,"w":79799.2,"g":2147}},{"id":"331478201","name":"Guilherme Pinto ","date":"03/02/2026","reg":"02/02/2026","actions":"50 Giros de Gates of Olympus + 200 giros de Gates Of Olympus (Saque priorizado) ","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":0,"opsCost":0,"pre":{"d":4000,"w":6765,"g":500},"pos":{"d":32140,"w":237694.75,"g":5740}},{"id":"556417735","name":"Lucas Bruno ","date":"03/02/2026","reg":"01/02/2026","actions":"30 Giros de Sweet Bonanza + 100 Giros de Gates of Olympus ","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":0,"opsCost":0,"pre":{"d":1250,"w":4984.9,"g":-1182.99},"pos":{"d":2810,"w":16909.39,"g":360}},{"id":"1833494778","name":"Ivanildo Souza Batista","date":"04/02/2026","reg":"03/03/2026","actions":"100 Giros de Gates of Olympus ","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":0,"opsCost":0,"pre":{"d":4000,"w":430,"g":0},"pos":{"d":6378,"w":25270,"g":6045}},{"id":"1119534979","name":"Wellington Victor Araujo","date":"04/02/2026","reg":"03/03/2026","actions":"100 Giros de Gates of Olympus ","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":0,"opsCost":0,"pre":{"d":1000,"w":3479,"g":-1409.42},"pos":{"d":3340,"w":8679,"g":1284}},{"id":"544539727","name":"Hermiro Filho ","date":"04/02/2026","reg":"01/02/2026","actions":"200 Giros de Gates of Olympus","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":0,"opsCost":0,"pre":{"d":55,"w":4971.1,"g":-1695.03},"pos":{"d":13462,"w":135864.31,"g":-466.05}},{"id":"1028160201","name":"Mikaelle Freitas ","date":"04/02/2026","reg":"31/01/2026","actions":"200 Giros de Gates of Olympus + 6209.64 de cashback + Grande Cashback amanha ","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":0,"opsCost":0,"pre":{"d":500,"w":80442,"g":10877.2},"pos":{"d":34960,"w":156126.2,"g":12561}},{"id":"85894125","name":"Fabio Santos ","date":"04/02/2026","reg":"30/01/2026","actions":"50 giros de Gates of Olympus + 100 Giros de Gates of Olympus","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":0,"opsCost":0,"pre":{"d":2317,"w":2006,"g":57.12},"pos":{"d":4401,"w":17802.17,"g":1583.12}},{"id":"1759513819","name":"Erivelton Pereira Costa","date":"05/02/2025","reg":"26/01/2026","actions":"50 giros de Gates of Olympus ","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":0,"opsCost":0,"pre":{"d":1520,"w":1285.8,"g":220.45},"pos":{"d":4420,"w":13147.8,"g":1836}},{"id":"294312980","name":"Gabriel Gusmao","date":"05/02/2025","reg":"02/02/2026","actions":"Jogador de Live Cassino ","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":0,"opsCost":0,"pre":{"d":8600,"w":87225.4,"g":1148.28},"pos":{"d":14400,"w":157450.4,"g":-3460.32}},{"id":"36008333","name":"Brunna Melo","date":"05/02/2025","reg":"31/01/2026","actions":"50 Giros de Gates + 145 Giros de Sweet bonanza","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":0,"opsCost":0,"pre":{"d":2000,"w":4580.95,"g":2028.97},"pos":{"d":3278,"w":13668.6,"g":2409.77}},{"id":"1171308522","name":"Moises Santos","date":"05/02/2025","reg":"02/02/2026","actions":"50 Giros de Gates + 100 giros de Gates of Olympus ","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":0,"opsCost":0,"pre":{"d":800,"w":10776.3,"g":805.98},"pos":{"d":2100,"w":21725.5,"g":1310}},{"id":"708507654","name":"Otavio Borges","date":"05/02/2025","reg":"02/02/2026","actions":"50 Giros de Gates of Olympus","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":0,"opsCost":0,"pre":{"d":4450,"w":12198.1,"g":-79.96},"pos":{"d":7830,"w":30735.4,"g":-929.55}},{"id":"50652385","name":"Aghata Paula","date":"05/02/2025","reg":"02/02/2026","actions":"30 Giros de Sweet Bonanza ","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":0,"opsCost":0,"pre":{"d":368,"w":5201.8,"g":367.5},"pos":{"d":1422,"w":10219.72,"g":667}},{"id":"257010659","name":"Andre Viana","date":"06/02/2026","reg":"02/02/2026","actions":"30 Giros de Sweet Bonanza","costDetails":{"Cashback":0,"Correção":0,"Rodadas":0,"Telefonia":0,"VOIP":0,"Encantamento":0,"Bônus":0,"Outros":0},"totalCost":0,"textTotal":0,"opsCost":0,"pre":{"d":698,"w":1750,"g":-775},"pos":{"d":2763.31,"w":83155,"g":-1526.69}}], meta: {"date":"09/02/2026, 17:11:44","rows":127,"success":127,"errors":0,"log":[]}, pipeline: {"leads":609,"try":595,"done":148,"cad":54,"brk":380,"act":148,"ina":9} };
+
+let db = DATA_STORE.db || [];
+let meta = DATA_STORE.meta || {};
+let pipelineStats = DATA_STORE.pipeline || {leads:0,try:0,done:0,cad:0,brk:0,act:0,ina:0};
+let allHeaders = [];
+let globalCostStats = {cb:0,cor:0,rod:0,tel:0,voip:0,enc:0,bon:0,out:0,total:0};
+let chartP=null,chartB=null,chartCosts=null,chartPipe=null;
+
+// Dados simulados Smartico (serão substituídos pela API)
+const smarticoMock = {};
+
+const fmt = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'});
+const fmtN = v => v.toLocaleString('pt-BR');
+
+const pct = (val,base) => {
+  if(base===0) return val>0?"+100%":"0%";
+  if(base<0&&val>0) return "+"+(((val-base)/Math.abs(base))*100).toFixed(1)+"%";
+  let p=((val-base)/Math.abs(base))*100;
+  return (p>0?"+":"")+p.toFixed(1)+"%";
+};
+
+// TIERS (Smartico/Lotus)
+const tiersVIP = [
+  {v:0,n:"Pedra",c:"#95a5a6",b:null,r:0},
+  {v:150,n:"Bronze 1",c:"#cd7f32",b:"Bronze",r:1},{v:618,n:"Bronze 2",c:"#cd7f32",b:"Bronze",r:1},
+  {v:1853,n:"Bronze 3",c:"#cd7f32",b:"Bronze",r:1},{v:4323,n:"Bronze 4",c:"#cd7f32",b:"Bronze",r:1},
+  {v:7410,n:"Bronze 5",c:"#cd7f32",b:"Bronze",r:1},
+  {v:12500,n:"Prata 1",c:"#bdc3c7",b:"Prata",r:2},{v:21250,n:"Prata 2",c:"#bdc3c7",b:"Prata",r:2},
+  {v:34375,n:"Prata 3",c:"#bdc3c7",b:"Prata",r:2},{v:51875,n:"Prata 4",c:"#bdc3c7",b:"Prata",r:2},
+  {v:73750,n:"Prata 5",c:"#bdc3c7",b:"Prata",r:2},
+  {v:100000,n:"Ouro 1",c:"#f1c40f",b:"Ouro",r:3},{v:140000,n:"Ouro 2",c:"#f1c40f",b:"Ouro",r:3},
+  {v:200000,n:"Ouro 3",c:"#f1c40f",b:"Ouro",r:3},{v:280000,n:"Ouro 4",c:"#f1c40f",b:"Ouro",r:3},
+  {v:380000,n:"Ouro 5",c:"#f1c40f",b:"Ouro",r:3},
+  {v:500000,n:"Platina 1",c:"#3498db",b:"Platina",r:4},{v:700000,n:"Platina 2",c:"#3498db",b:"Platina",r:4},
+  {v:1000000,n:"Platina 3",c:"#3498db",b:"Platina",r:4},{v:1400000,n:"Platina 4",c:"#3498db",b:"Platina",r:4},
+  {v:1900000,n:"Platina 5",c:"#3498db",b:"Platina",r:4},
+  {v:2500000,n:"Diamante 1",c:"#9b59b6",b:"Diamante",r:5},{v:3750000,n:"Diamante 2",c:"#9b59b6",b:"Diamante",r:5},
+  {v:5625000,n:"Diamante 3",c:"#9b59b6",b:"Diamante",r:5},{v:8125000,n:"Diamante 4",c:"#9b59b6",b:"Diamante",r:5},
+  {v:11250000,n:"Diamante 5",c:"#9b59b6",b:"Diamante",r:5},
+  {v:15000000,n:"Elite",c:"#2c3e50",b:"Elite",r:6}
+];
+
+const badges = {
+  "Bronze":`<svg viewBox="0 0 24 24" fill="none"><path d="M12 15C15.866 15 19 11.866 19 8C19 4.134 15.866 1 12 1C8.134 1 5 4.134 5 8C5 11.866 8.134 15 12 15Z" fill="#CD7F32" stroke="white" stroke-width="2"/><path d="M8.21 13.89L7 23L12 20L17 23L15.79 13.88" fill="#CD7F32" fill-opacity="0.6" stroke="white" stroke-width="2"/></svg>`,
+  "Prata":`<svg viewBox="0 0 24 24" fill="none"><path d="M12 15C15.866 15 19 11.866 19 8C19 4.134 15.866 1 12 1C8.134 1 5 4.134 5 8C5 11.866 8.134 15 12 15Z" fill="#C0C0C0" stroke="white" stroke-width="2"/><path d="M8.21 13.89L7 23L12 20L17 23L15.79 13.88" fill="#C0C0C0" fill-opacity="0.6" stroke="white" stroke-width="2"/></svg>`,
+  "Ouro":`<svg viewBox="0 0 24 24" fill="none"><path d="M12 15C15.866 15 19 11.866 19 8C19 4.134 15.866 1 12 1C8.134 1 5 4.134 5 8C5 11.866 8.134 15 12 15Z" fill="#FFD700" stroke="white" stroke-width="2"/><path d="M8.21 13.89L7 23L12 20L17 23L15.79 13.88" fill="#FFD700" fill-opacity="0.6" stroke="white" stroke-width="2"/></svg>`,
+  "Platina":`<svg viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7L12 22L22 7L12 2Z" fill="#E0FFFF" stroke="#00BFFF" stroke-width="1.5"/></svg>`,
+  "Diamante":`<svg viewBox="0 0 24 24" fill="none"><path d="M12 2L2 9L12 22L22 9L12 2Z" fill="#F8F8F8" stroke="#A0A0A0" stroke-width="1.5"/></svg>`,
+  "Elite":`<svg viewBox="0 0 24 24" fill="none"><path d="M2 4L5 20H19L22 4L15 9L12 2L9 9L2 4Z" fill="#FCA600" stroke="white" stroke-width="2"/></svg>`
+};
+
+function getTier(w) {
+  let cur=tiersVIP[0],nxt=tiersVIP[1],p=0,m=0;
+  for(let i=0;i<tiersVIP.length-1;i++){
+    if(w>=tiersVIP[i].v){
+      cur=tiersVIP[i];nxt=tiersVIP[i+1];
+      p=Math.min(100,((w-cur.v)/(nxt.v-cur.v))*100);
+      m=nxt.v-w;
+    }
+  }
+  if(w>=tiersVIP[tiersVIP.length-1].v){cur=tiersVIP[tiersVIP.length-1];nxt=cur;p=100;m=0;}
+  return {c:cur,n:nxt,p:p,m:m};
+}
+
+// STATUS LOGIC
+function parseDate(str) {
+  if(!str||str.length<5) return null;
+  let p=str.match(/(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})/);
+  if(!p) return null;
+  let y=p[3].length===2?"20"+p[3]:p[3];
+  return new Date(`${y}-${p[2].padStart(2,"0")}-${p[1].padStart(2,"0")}`);
+}
+
+function diffDays(d1,d2){
+  if(!d1||!d2) return 0;
+  let diff=Math.ceil((d2-d1)/(1000*60*60*24));
+  return diff>0?diff:1;
+}
+
+function getPlayerStatus(p) {
+  if(p.autoexcluido) return {label:"🚫 Autoexcluído",cls:"status-autoexcluido",type:"autoexcluido"};
+  if(p.sigap) return {label:"🔒 Bloqueio SIGAP",cls:"status-sigap",type:"sigap"};
+  let today=new Date();
+  let lastContact=parseDate(p.date);
+  let dias=lastContact?diffDays(lastContact,today):0;
+  if(dias>30) return {label:"⚫ Churned",cls:"status-churned",type:"churned",dias};
+  if(dias>15) return {label:"🔴 Inativo",cls:"status-inativo",type:"inativo",dias};
+  return {label:"🟢 Ativo",cls:"status-ativo",type:"ativo",dias};
+}
+
+function getGenerosityBudget(p) {
+  let ggr=p.pos.g;
+  let tierName=getTier(p.pos.w).c.b||"";
+  let pct=0;
+  if(tierName==="Platina") pct=0.10;
+  else if(tierName==="Diamante") pct=0.125;
+  else if(tierName==="Elite") pct=0.15;
+  if(ggr<=0) return {budget:0,bloqueado:true,pct,tierName};
+  return {budget:ggr*pct,bloqueado:false,pct,tierName};
+}
+
+// THEME
+function toggleTheme(isDark){
+  document.body.setAttribute('data-theme',isDark?'dark':'light');
+  localStorage.setItem('theme',isDark?'dark':'light');
+  updateAll();
+  if(document.getElementById('p-res').style.display!=='none') findP();
+}
+const savedTheme=localStorage.getItem('theme');
+if(savedTheme){document.body.setAttribute('data-theme',savedTheme);document.getElementById('checkbox').checked=(savedTheme==='dark');}
+
+// NAVIGATION
+function go(v,btn){
+  document.querySelectorAll('.view').forEach(e=>e.classList.remove('active'));
+  document.getElementById('v-'+v).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(e=>e.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  if(v==='alertas') renderAlertas();
+  if(v==='list') renderList();
+}
+
+function log(m,err=false){
+  let msg=`[${new Date().toLocaleTimeString()}] ${m}`;
+  const out=document.getElementById('log-out');
+  if(out){out.innerHTML+=`<div class="log-line ${err?'log-err':''}">${msg}</div>`;out.scrollTop=out.scrollHeight;}
+}
+
+// UPDATE ALL
+function updateAll(){
+  if(!db||db.length===0) return;
+  updateOverview();
+  updatePipeline();
+  updateAlertBadge();
+  renderList();
+}
+
+function updateAlertBadge(){
+  let count=0;
+  db.forEach(p=>{
+    let s=getPlayerStatus(p);
+    if(s.type!=='ativo') count++;
+  });
+  document.getElementById('alert-badge').textContent=count;
+  document.getElementById('alert-badge').style.background=count>0?'var(--danger)':'#27ae60';
+}
+
+function updateOverview(){
+  let tot=db.length,dep=0,wag=0,ggr=0,wagPre=0,wagPos=0;
+  let tierCounts={};
+  let newGold=0,tierUp=0,inativos=0,churned=0,autoexc=0;
+
+  db.forEach(p=>{
+    dep+=Math.max(0,p.pos.d-p.pre.d);
+    wag+=Math.max(0,p.pos.w-p.pre.w);
+    ggr+=p.pos.g-p.pre.g;
+    wagPre+=p.pre.w;
+    wagPos+=p.pos.w;
+    let tPre=getTier(p.pre.w).c,tPos=getTier(p.pos.w).c;
+    let tn=tPos.b||"Pedra";
+    tierCounts[tn]=(tierCounts[tn]||0)+1;
+    if(tPos.b==="Ouro"&&tPre.b!=="Ouro"&&(tPre.r||0)<(tPos.r||0)) newGold++;
+    if((tPos.r||0)>(tPre.r||0)) tierUp++;
+    let s=getPlayerStatus(p);
+    if(s.type==="inativo") inativos++;
+    if(s.type==="churned") churned++;
+    if(s.type==="autoexcluido"||p.autoexcluido) autoexc++;
+  });
+
+  let uplift=wagPre>0?((wagPos-wagPre)/wagPre)*100:0;
+
+  document.getElementById('k-tot').textContent=tot;
+  document.getElementById('k-dep').textContent=fmt.format(dep);
+  document.getElementById('k-wag').textContent=fmt.format(wag);
+  document.getElementById('k-ggr').innerHTML=`<span class="${ggr>=0?'pos':'neg'}">${fmt.format(ggr)}</span>`;
+  document.getElementById('k-up').textContent=(uplift>0?'+':'')+uplift.toFixed(1)+'%';
+  document.getElementById('k-new-gold').textContent=newGold;
+  document.getElementById('k-tier-up').textContent=tierUp;
+  document.getElementById('k-inativo').textContent=inativos;
+  document.getElementById('k-churned').textContent=churned;
+  document.getElementById('k-autoexc').textContent=autoexc;
+  document.getElementById('stat-txt').textContent='✅ '+tot+' Registros';
+
+  if(meta.date) document.getElementById('meta-date').textContent=meta.date;
+  document.getElementById('meta-rows').textContent=meta.rows||0;
+  document.getElementById('meta-suc').textContent=meta.success||0;
+  document.getElementById('meta-err').textContent=meta.errors||0;
+
+  // Pie chart
+  const isDark=document.body.getAttribute('data-theme')=='dark';
+  const colors={'Pedra':'#95a5a6','Bronze':'#cd7f32','Prata':'#bdc3c7','Ouro':'#f1c40f','Platina':'#3498db','Diamante':'#9b59b6','Elite':'#2c3e50'};
+  const tierLabels=Object.keys(tierCounts);
+  if(chartP) chartP.destroy();
+  chartP=new Chart(document.getElementById('chartPie'),{
+    type:'doughnut',
+    data:{labels:tierLabels,datasets:[{data:tierLabels.map(t=>tierCounts[t]),backgroundColor:tierLabels.map(t=>colors[t]||'#ccc')}]},
+    options:{maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:isDark?'#ccd6f6':'#2c3e50',font:{size:11}}}}}
+  });
+
+  // Top 5 dep
+  let sorted=[...db].sort((a,b)=>(b.pos.d-b.pre.d)-(a.pos.d-a.pre.d));
+  document.getElementById('tb-top-dep').innerHTML=sorted.slice(0,5).map(p=>`
+    <tr><td style="text-align:left"><span class="player-link" onclick="openP('${p.id}')">${p.name}</span></td>
+    <td class="pos">${fmt.format(Math.max(0,p.pos.d-p.pre.d))}</td></tr>`).join('');
+
+  // Top 5 ggr
+  let sortedG=[...db].sort((a,b)=>(b.pos.g-b.pre.g)-(a.pos.g-a.pre.g));
+  document.getElementById('tb-top-ggr').innerHTML=sortedG.slice(0,5).map(p=>{
+    let g=p.pos.g-p.pre.g;
+    return `<tr><td style="text-align:left"><span class="player-link" onclick="openP('${p.id}')">${p.name}</span></td>
+    <td class="${g>=0?'pos':'neg'}">${fmt.format(g)}</td></tr>`;
+  }).join('');
+
+  // Costs
+  updateCosts();
+}
+
+function updateCosts(){
+  let gs={cb:0,cor:0,rod:0,tel:0,voip:0,enc:0,bon:0,out:0,total:0};
+  db.forEach(p=>{
+    if(p.costDetails){
+      gs.cb+=p.costDetails['Cashback']||0;
+      gs.cor+=p.costDetails['Correção']||0;
+      gs.rod+=p.costDetails['Rodadas']||0;
+      gs.tel+=p.costDetails['Telefonia']||0;
+      gs.voip+=p.costDetails['VOIP']||0;
+      gs.enc+=p.costDetails['Encantamento']||0;
+      gs.bon+=p.costDetails['Bônus']||0;
+      gs.out+=p.costDetails['Outros']||0;
+    }
+    gs.total+=p.totalCost||0;
+  });
+  globalCostStats=gs;
+  document.getElementById('k-total-cost').textContent=fmt.format(gs.total);
+
+  const isDark=document.body.getAttribute('data-theme')=='dark';
+  const labels=['Cashback','Correção','Rodadas','Telefonia','VOIP','Encantamento','Bônus'];
+  const vals=[gs.cb,gs.cor,gs.rod,gs.tel,gs.voip,gs.enc,gs.bon];
+  const colors=['#3498db','#e74c3c','#2ecc71','#f39c12','#9b59b6','#e91e63','#1abc9c'];
+  if(chartCosts) chartCosts.destroy();
+  chartCosts=new Chart(document.getElementById('chartCosts'),{
+    type:'bar',
+    data:{labels,datasets:[{data:vals,backgroundColor:colors,borderRadius:5}]},
+    options:{maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{color:isDark?'#8892b0':'#7f8c8d'},grid:{color:isDark?'#233554':'#ecf0f1'}},x:{ticks:{color:isDark?'#8892b0':'#7f8c8d'}}}}
+  });
+
+  let sorted=[...db].filter(p=>p.textTotal>0).sort((a,b)=>b.textTotal-a.textTotal);
+  document.getElementById('tb-top-costs').innerHTML=sorted.slice(0,5).map(p=>`
+    <tr>
+      <td style="text-align:left"><span class="player-link" onclick="openP('${p.id}')">${p.name}</span><br><span style="font-size:10px;color:var(--text-sec)">${p.id}</span></td>
+      <td class="clickable-cost" onclick="showPlayerHistory('${p.id}')">${fmt.format(p.textTotal)}</td>
+    </tr>`).join('');
+}
+
+function updatePipeline(){
+  let ps=pipelineStats;
+  document.getElementById('pipe-leads').textContent=fmtN(ps.leads);
+  document.getElementById('pipe-try').textContent=fmtN(ps.try);
+  document.getElementById('pipe-done').textContent=fmtN(ps.done);
+  document.getElementById('pipe-cad').textContent=fmtN(ps.cad);
+
+  let rBreak=ps.try>0?((ps.brk/ps.try)*100).toFixed(1):0;
+  let rAct=ps.done>0?((ps.act/ps.done)*100).toFixed(1):0;
+  let rIna=ps.done>0?((ps.ina/ps.done)*100).toFixed(1):0;
+
+  document.getElementById('rate-break').textContent=rBreak+'%';
+  document.getElementById('raw-break').textContent=ps.brk+' Leads';
+  document.getElementById('rate-act').textContent=rAct+'%';
+  document.getElementById('raw-act').textContent=ps.act+' Jogadores';
+  document.getElementById('rate-ina').textContent=rIna+'%';
+  document.getElementById('raw-ina').textContent=ps.ina+' Jogadores';
+
+  const isDark=document.body.getAttribute('data-theme')=='dark';
+  if(chartPipe) chartPipe.destroy();
+  chartPipe=new Chart(document.getElementById('chartPipeline'),{
+    type:'bar',
+    data:{
+      labels:['Leads','Tentativas','Contatos','Em Cadência','Break Up','Ativados','Inativos'],
+      datasets:[{data:[ps.leads,ps.try,ps.done,ps.cad,ps.brk,ps.act,ps.ina],
+        backgroundColor:['#3498db','#f39c12','#27ae60','#9b59b6','#e74c3c','#1abc9c','#95a5a6'],borderRadius:5}]
+    },
+    options:{maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{color:isDark?'#8892b0':'#7f8c8d'},grid:{color:isDark?'#233554':'#ecf0f1'}},x:{ticks:{color:isDark?'#8892b0':'#7f8c8d'}}}}
+  });
+}
+
+// ALERTAS
+function renderAlertas(){
+  let filter=document.getElementById('al-filter').value;
+  let churned=[],inativos=[],autoexc=[],sigap=[];
+
+  db.forEach(p=>{
+    let s=getPlayerStatus(p);
+    if(s.type==='churned') churned.push({p,s});
+    else if(s.type==='inativo') inativos.push({p,s});
+    if(p.autoexcluido) autoexc.push({p,s:{label:"🚫 Autoexcluído",type:"autoexcluido"}});
+    if(p.sigap) sigap.push({p,s:{label:"🔒 Bloqueio SIGAP",type:"sigap"}});
+  });
+
+  document.getElementById('al-churned').textContent=churned.length;
+  document.getElementById('al-inativo').textContent=inativos.length;
+  document.getElementById('al-autoexc').textContent=autoexc.length;
+  document.getElementById('al-sigap').textContent=sigap.length;
+
+  let list=[];
+  if(filter==='all'||filter==='churned') list=[...list,...churned];
+  if(filter==='all'||filter==='inativo') list=[...list,...inativos];
+  if(filter==='all'||filter==='autoexcluido') list=[...list,...autoexc];
+  if(filter==='all'||filter==='sigap') list=[...list,...sigap];
+
+  document.getElementById('al-total-label').textContent=list.length+' registro(s)';
+
+  const acao={churned:'📞 Ligação de reativação urgente',inativo:'💬 WhatsApp de check-in em 24h',autoexcluido:'❌ Remover do pipeline — protocolo legal',sigap:'🔒 Suspender ações — verificar compliance'};
+
+  let html='';
+  if(list.length===0){
+    html='<div style="text-align:center;padding:40px;color:var(--text-sec);font-size:15px">✅ Nenhum alerta no filtro selecionado</div>';
+  } else {
+    list.forEach(({p,s})=>{
+      let cls=s.type==='churned'?'danger':s.type==='inativo'?'warning':s.type==='sigap'?'sigap':'critical';
+      let dias=s.dias||0;
+      html+=`
+      <div class="alert-player-row ${cls}" onclick="openP('${p.id}')">
+        <div>
+          <div class="alert-player-name">${p.name}</div>
+          <div class="alert-player-meta">ID: ${p.id} &nbsp;|&nbsp; Tier: ${getTier(p.pos.w).c.b||'Sem tier'} &nbsp;|&nbsp; Ação: ${acao[s.type]||'—'}</div>
+        </div>
+        ${dias>0?`<div><div class="alert-days">${dias}</div><div class="alert-days-label">dias</div></div>`:`<div><div style="font-size:20px">${s.type==='autoexcluido'?'🚫':'🔒'}</div></div>`}
+        <div><span class="status-badge ${'status-'+s.type}">${s.label}</span></div>
+      </div>`;
+    });
+  }
+  document.getElementById('alertas-list').innerHTML=html;
+}
+
+// LIST
+function renderList(){
+  let tier=document.getElementById('fil-tier')?.value||'';
+  let minGgr=parseFloat(document.getElementById('fil-ggr')?.value)||null;
+  let minUplift=parseFloat(document.getElementById('fil-uplift')?.value)||null;
+
+  let filtered=db.filter(p=>{
+    let tn=getTier(p.pos.w).c.b||'';
+    let ggr=p.pos.g;
+    let uplift=p.pre.w>0?((p.pos.w-p.pre.w)/p.pre.w)*100:0;
+    if(tier&&tn!==tier) return false;
+    if(minGgr!==null&&ggr<minGgr) return false;
+    if(minUplift!==null&&uplift<minUplift) return false;
+    return true;
+  });
+
+  document.getElementById('list-count').textContent=filtered.length+' de '+db.length+' jogadores';
+
+  document.getElementById('tb-list').innerHTML=filtered.map(p=>{
+    let up=p.pre.w>0?pct(p.pos.w,p.pre.w):"+100%";
+    let tPos=getTier(p.pos.w).c;
+    let s=getPlayerStatus(p);
+    return `<tr>
+      <td style="text-align:left"><span class="player-link" onclick="openP('${p.id}')">${p.name}</span></td>
+      <td>${p.id} <i class="fas fa-copy copy-btn" onclick="copyId('${p.id}')" title="Copiar ID"></i></td>
+      <td><span class="sub-val">Pré: ${fmt.format(p.pre.w)}</span>${fmt.format(p.pos.w)}</td>
+      <td><span class="sub-val">Pré: ${fmt.format(p.pre.g)}</span><span class="${p.pos.g>=0?'pos':'neg'}">${fmt.format(p.pos.g)}</span></td>
+      <td class="${up.includes('-')?'neg':'pos'}">${up}</td>
+      <td>${tPos.b||'—'}</td>
+      <td><span class="status-badge status-${s.type}">${s.label}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function clearFilters(){
+  document.getElementById('fil-tier').value='';
+  document.getElementById('fil-ggr').value='';
+  document.getElementById('fil-uplift').value='';
+  renderList();
+}
+
+// PLAYER DETAIL
+function openP(id){
+  document.getElementById('search-in').value=id;
+  findP();
+  go('player',null);
+  document.querySelectorAll('.nav-btn').forEach(e=>e.classList.remove('active'));
+  document.querySelectorAll('.nav-btn')[2].classList.add('active');
+}
+
+function findP(){
+  let q=document.getElementById('search-in').value.trim().toLowerCase();
+  let p=db.find(x=>x.name.toLowerCase().includes(q)||x.id.includes(q));
+  if(!p) return alert("Jogador não encontrado");
+
+  document.getElementById('p-res').style.display='grid';
+  document.getElementById('pn').textContent=p.name;
+  document.getElementById('pid').textContent="ID: "+p.id;
+  document.getElementById('p-reg-date').textContent="Cadastro: "+(p.reg||"N/A");
+  document.getElementById('p-con-date').textContent="Contato VIP: "+(p.date||"N/A");
+
+  // STATUS
+  let s=getPlayerStatus(p);
+  document.getElementById('p-status-badge').innerHTML=`<span class="status-badge ${'status-'+s.type}">${s.label}</span>`;
+  let diasEl=document.getElementById('p-dias-inativo');
+  if(s.dias&&s.dias>0){
+    diasEl.textContent=s.dias+' dias sem atividade';
+    diasEl.style.color=s.type==='churned'?'var(--danger)':'var(--warning)';
+  } else {
+    diasEl.textContent='';
+  }
+
+  // BADGE
+  let tInfo=getTier(p.pos.w);
+  let bName=tInfo.c.b;
+  document.getElementById('badge-container').innerHTML=bName&&badges[bName]?badges[bName]:'';
+
+  // ACTIONS
+  let actList=document.getElementById('p-actions-list');
+  let noAct=document.getElementById('p-no-actions');
+  actList.innerHTML='';
+  if(p.actions&&p.actions.trim().length>0){
+    noAct.style.display='none';
+    p.actions.split(/\r?\n/).filter(l=>l.trim()).forEach(l=>{
+      let li=document.createElement('li');li.textContent=l;actList.appendChild(li);
+    });
+  } else {
+    noAct.style.display='block';
+  }
+
+  // DATES & AVERAGES
+  let today=new Date();
+  let dContact=parseDate(p.date);
+  let dReg=parseDate(p.reg);
+  let daysPos=dContact?diffDays(dContact,today):1;
+  let daysPre=(dReg&&dContact)?diffDays(dReg,dContact):0;
+  document.getElementById('days-pos').textContent=daysPos;
+  document.getElementById('days-pre').textContent=daysPre>0?daysPre:"N/A";
+  const calcAvg=(val,days)=>days>0?fmt.format(val/days):"-";
+  let realPosDep=Math.max(0,p.pos.d-p.pre.d);
+  let realPosWag=Math.max(0,p.pos.w-p.pre.w);
+  let realPosGgr=p.pos.g-p.pre.g;
+  document.getElementById('avg-dep-pos').textContent=calcAvg(realPosDep,daysPos);
+  document.getElementById('avg-wag-pos').textContent=calcAvg(realPosWag,daysPos);
+  document.getElementById('avg-ggr-pos').textContent=calcAvg(realPosGgr,daysPos);
+  document.getElementById('avg-dep-pre').textContent=calcAvg(p.pre.d,daysPre);
+  document.getElementById('avg-wag-pre').textContent=calcAvg(p.pre.w,daysPre);
+  document.getElementById('avg-ggr-pre').textContent=calcAvg(p.pre.g,daysPre);
+
+  // TIER
+  document.getElementById('tc').textContent=tInfo.c.n;
+  document.getElementById('tn').textContent=tInfo.n.n;
+  let bar=document.getElementById('tf');
+  bar.style.width=tInfo.p+'%';bar.style.backgroundColor=tInfo.c.c;
+  document.getElementById('tm').textContent=fmt.format(tInfo.m);
+
+  // TABLE
+  const set=(k,v1,v2)=>{
+    document.getElementById(`t-${k}-1`).textContent=fmt.format(v1);
+    document.getElementById(`t-${k}-2`).textContent=fmt.format(v2);
+    let val=pct(v2,v1);let el=document.getElementById(`t-${k}-3`);
+    el.textContent=val;el.className=val.includes('-')?'neg':'pos';
+  };
+  set('dep',p.pre.d,p.pos.d);
+  set('wag',p.pre.w,p.pos.w);
+  set('ggr',p.pre.g,p.pos.g);
+
+  // SMARTICO (mock até API)
+  document.getElementById('sm-pontos').innerHTML='<span style="color:var(--text-sec);font-size:12px">Aguardando API Smartico</span>';
+  document.getElementById('sm-tier').innerHTML='<span style="color:var(--text-sec);font-size:12px">—</span>';
+  document.getElementById('sm-missoes').innerHTML='<span style="color:var(--text-sec);font-size:12px">—</span>';
+  document.getElementById('sm-streak').innerHTML='<span style="color:var(--text-sec);font-size:12px">—</span>';
+
+  // GENEROSITY
+  let gen=getGenerosityBudget(p);
+  document.getElementById('gen-budget').textContent=gen.bloqueado?'R$ 0,00 (GGR negativo)':fmt.format(gen.budget);
+  document.getElementById('gen-tier-pct').textContent=gen.pct>0?(gen.tierName+' — '+Math.round(gen.pct*100)+'% do GGR'):'Tier sem generosity';
+  document.getElementById('gen-bloqueio').style.display=gen.bloqueado?'flex':'none';
+
+  // CHART
+  if(chartB) chartB.destroy();
+  const isDark=document.body.getAttribute('data-theme')=='dark';
+  chartB=new Chart(document.getElementById('chartBar'),{
+    type:'bar',
+    data:{
+      labels:['Depósitos','Wager','GGR'],
+      datasets:[
+        {label:'Pré',data:[p.pre.d,p.pre.w,p.pre.g],backgroundColor:isDark?'#475569':'#95a5a6',borderRadius:4},
+        {label:'Pós',data:[p.pos.d,p.pos.w,p.pos.g],backgroundColor:isDark?'#4a90e2':'#004786',borderRadius:4}
+      ]
+    },
+    options:{maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      scales:{y:{beginAtZero:true,ticks:{color:isDark?'#8892b0':'#7f8c8d'},grid:{color:isDark?'#233554':'#ecf0f1'}},
+      x:{ticks:{color:isDark?'#8892b0':'#7f8c8d'}}},
+      plugins:{legend:{labels:{color:isDark?'#ccd6f6':'#2c3e50'}}}}
+  });
+}
+
+// MODALS
+function showDetails(type){
+  let title='',items=[];
+  if(type==='newGold'){
+    title='Novos Ouros (Pós-VIP)';
+    items=db.filter(p=>getTier(p.pos.w).c.b==='Ouro'&&getTier(p.pre.w).c.r<3).map(p=>({name:p.name,val:fmt.format(p.pos.w),id:p.id}));
+  } else if(type==='tierUp'){
+    title='Evolução de Tier';
+    items=db.filter(p=>(getTier(p.pos.w).c.r||0)>(getTier(p.pre.w).c.r||0)).map(p=>({name:p.name,val:getTier(p.pre.w).c.b+' → '+getTier(p.pos.w).c.b,id:p.id}));
+  }
+  document.getElementById('modal-title').textContent=title+' ('+items.length+')';
+  document.getElementById('modal-content').innerHTML=items.length>0?items.map(i=>`
+    <div class="modal-item"><span class="modal-link" onclick="openP('${i.id}');closeModal()">${i.name}</span><span>${i.val}</span></div>`).join('')
+    :'<div style="padding:20px;text-align:center;color:var(--text-sec)">Nenhum resultado</div>';
+  document.getElementById('modal').style.display='flex';
+}
+
+function showTotalCostBreakdown(){
+  let gs=globalCostStats;
+  document.getElementById('modal-title').textContent='Breakdown Total de Custos';
+  let cats=[{l:'Cashback',v:gs.cb},{l:'Correção',v:gs.cor},{l:'Rodadas',v:gs.rod},{l:'Telefonia',v:gs.tel},{l:'VOIP',v:gs.voip},{l:'Encantamento',v:gs.enc},{l:'Bônus',v:gs.bon}];
+  document.getElementById('modal-content').innerHTML=cats.map(c=>`
+    <div class="modal-item"><span>${c.l}</span><span class="pos">${fmt.format(c.v)}</span></div>`).join('')+
+    `<div class="modal-item" style="font-weight:bold;background:var(--hover-row)"><span>TOTAL</span><span>${fmt.format(gs.total)}</span></div>`;
+  document.getElementById('modal').style.display='flex';
+}
+
+function showPlayerHistory(id){
+  let p=db.find(x=>x.id===id);
+  if(!p) return;
+  document.getElementById('modal-title').textContent='Histórico: '+p.name;
+  let lines=p.actions?p.actions.split(/\r?\n/).filter(l=>l.trim()):['Sem registros'];
+  document.getElementById('modal-content').innerHTML=lines.map(l=>`<div class="modal-item">${l}</div>`).join('');
+  document.getElementById('modal').style.display='flex';
+}
+
+function closeModal(){document.getElementById('modal').style.display='none';}
+
+// UTILS
+function copyId(id){navigator.clipboard.writeText(id).then(()=>alert("ID copiado: "+id)).catch(()=>{let el=document.createElement('textarea');el.value=id;document.body.appendChild(el);el.select();document.execCommand('copy');document.body.removeChild(el);alert("ID copiado: "+id);});}
+
+function handleLogoUpload(input){
+  if(!input.files[0]) return;
+  const r=new FileReader();
+  r.onload=e=>{const img=document.getElementById('logo-img');img.src=e.target.result;img.style.display='block';img.nextElementSibling.style.display='none';};
+  r.readAsDataURL(input.files[0]);
+}
+
+// CSV IMPORT
+function loadFile(inp){
+  if(!inp.files[0]) return;
+  meta={date:new Date().toLocaleString(),rows:0,success:0,errors:0,log:[]};
+  log(`Lendo arquivo: ${inp.files[0].name}`);
+  Papa.parse(inp.files[0],{header:true,skipEmptyLines:true,complete:res=>process(res.data,res.meta.fields)});
+}
+
+function parsePipelineValues(rows,headers){
+  const targets=[
+    {key:'leads',exact:'Leads Potenciais'},{key:'try',exact:'Tentativas de contato'},
+    {key:'done',exact:'Contatos realizados'},{key:'cad',exact:'Leads em cadência'},
+    {key:'brk',exact:'Leads em break up'},{key:'act',exact:'Jogadores ativados após contato'},
+    {key:'ina',exact:'Jogadores inativos após o contato'}
+  ];
+  let stats={leads:0,try:0,done:0,cad:0,brk:0,act:0,ina:0};
+  const norm=s=>s.toLowerCase().replace(/\s+/g,'').normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+  targets.forEach(t=>{
+    let colKey=headers.find(h=>norm(h)===norm(t.exact));
+    if(colKey&&rows.length>0){
+      let rawVal=rows[0][colKey];
+      if(rawVal){let cleanVal=parseInt(rawVal.toString().replace(/\D/g,''))||0;stats[t.key]=cleanVal;log(`Pipeline: ${t.exact} = ${cleanVal}`);}
+    }
+  });
+  return stats;
+}
+
+function parseActionsForTotal(text){
+  if(!text) return 0;
+  let total=0;
+  text.split(/\r?\n/).forEach(line=>{
+    let l=line.trim().toLowerCase();if(!l) return;let val=0;
+    if(l.includes('rodadas')||l.includes('giros')){
+      const m=l.match(/(\d+)\s*(?:rodadas|giros).*?(?:de|x|\()\s*(?:r\$)?\s*([\d\.,]+)/);
+      if(m){let qty=parseFloat(m[1]);let ps=m[2].replace(',','.');if(ps.split('.').length>2)ps=ps.replace(/\./g,'');val=qty*parseFloat(ps);total+=val;return;}
+    }
+    let mm=l.match(/(?:r\$|brl)[\s\xA0]*([\d\.,]+)/);
+    if(!mm) mm=l.match(/[:\-\s][\s\xA0]*(\d+(?:[.,]\d{2}))[\s\xA0]*$/);
+    if(mm){
+      let s=mm[1];
+      if(s.includes(',')&&s.includes('.')){if(s.lastIndexOf(',')>s.lastIndexOf('.'))s=s.replace(/\./g,'').replace(',','.');else s=s.replace(/,/g,'');}
+      else if(s.includes(','))s=s.replace(',','.');
+      val=parseFloat(s);
+    }
+    if(val>0) total+=val;
+  });
+  return total;
+}
+
+function process(rows,cols){
+  meta.rows=rows.length;allHeaders=cols;
+  const norm=s=>s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+  const find=(m,os,ignore)=>cols.find(h=>{let hn=norm(h);return hn.includes(m)&&(!os||os.some(o=>hn.includes(o)))&&(!ignore||h!==ignore);});
+  const cid=cols.find(h=>norm(h).includes('id')||norm(h).includes('cod'));
+  const cnm=cols.find(h=>norm(h).includes('nome')||norm(h).includes('player'));
+  const creg=cols.find(h=>{let n=norm(h);return n.includes('cadastro')||n.includes('registro')||n.includes('inicio')||(n.includes('reg')&&!n.includes('regiao'));});
+  const ccont=cols.find(h=>{if(h===creg)return false;let n=norm(h);return n.includes('contato')||n.includes('data');});
+  const cact=cols.find(h=>{let n=norm(h);return n.includes('acao')||n.includes('acoes')||n.includes('obs')||n.includes('historico')||n.includes('bonus')||n.includes('crm');});
+  const cauto=cols.find(h=>{let n=norm(h);return n.includes('autoexc')||n.includes('autoban');});
+  const csigap=cols.find(h=>norm(h).includes('sigap'));
+  pipelineStats=parsePipelineValues(rows,cols);
+  const c_rg=find('rodadas')||find('giros');
+  const c_cb=find('cashback');const c_enc=find('encantamento');
+  const c_cor=find('correcao')||find('ajuste');
+  const c_tel=find('telefonia');const c_voip=find('voip');const c_bonus=find('bonus');
+  const dp=find('dep',['pre','ant','inic']);const wp=find('wag',['pre','ant','inic']);const gp=find('ggr',['pre','ant','inic']);
+  const d2=find('dep',['pos','atu','depois'],dp);const w2=find('wag',['pos','atu','depois'],wp);const g2=find('ggr',['pos','atu','depois'],gp);
+  if(!cid){log("ERRO FATAL: ID não encontrado!",true);alert("Erro: coluna ID obrigatória.");return;}
+  const clean=v=>{
+    if(!v) return 0;let s=v.toString().replace(/[R$\s]/g,'');
+    if(s.includes(',')&&s.includes('.'))
+      {if(s.lastIndexOf(',')>s.lastIndexOf('.'))s=s.replace(/\./g,'').replace(',','.');else s=s.replace(/,/g,'');}
+    else if(s.includes(','))s=s.replace(',','.');
+    return parseFloat(s)||0;
+  };
+  log("MODO MIXTO: Breakdown via Colunas | Top 5 via Texto");
+  db=[];
+  rows.forEach(r=>{
+    if(!r[cid]){meta.errors++;return;}
+    let actionText=cact?r[cact]:'';
+    let col_rg=clean(r[c_rg]);let col_cb=clean(r[c_cb]);let col_enc=clean(r[c_enc]);
+    let col_cor=clean(r[c_cor]);let col_tel=clean(r[c_tel]);let col_voip=clean(r[c_voip]);let col_bonus=clean(r[c_bonus]);
+    let finalCostDetails={'Cashback':col_cb,'Correção':col_cor,'Rodadas':col_rg,'Telefonia':col_tel,'VOIP':col_voip,'Encantamento':col_enc,'Bônus':col_bonus,'Outros':0};
+    let investTotal=0,opsTotal=0;
+    let isInv=k=>['Cashback','Rodadas','Bônus','Correção','Outros'].includes(k);
+    let isOps=k=>['Telefonia','VOIP','Encantamento'].includes(k);
+    for(let key in finalCostDetails){if(isInv(key))investTotal+=finalCostDetails[key];if(isOps(key))opsTotal+=finalCostDetails[key];}
+    let textInvestment=parseActionsForTotal(actionText);
+    let autoexcluido=cauto?(r[cauto]||"").toLowerCase().trim()==="sim":false;
+    let sigap=csigap?(r[csigap]||"").toLowerCase().trim()==="sim":false;
+    db.push({
+      id:r[cid].toString(),name:cnm?r[cnm]:'Jogador '+r[cid],
+      date:ccont?r[ccont]:'-',reg:creg?r[creg]:null,
+      actions:actionText,costDetails:finalCostDetails,
+      totalCost:investTotal,textTotal:textInvestment,opsCost:opsTotal,
+      autoexcluido,sigap,
+      pre:{d:clean(r[dp]),w:clean(r[wp]),g:clean(r[gp])},
+      pos:{d:clean(r[d2]),w:clean(r[w2]),g:clean(r[g2])}
+    });
+  });
+  meta.success=db.length;
+  log(`Importação: ${db.length} válidos.`);
+  log(`Campos detectados — Autoexcluído: ${cauto||'N/A'} | SIGAP: ${csigap||'N/A'}`);
+  let html=allHeaders.map(h=>`<span style="display:inline-block;padding:2px 6px;margin:2px;background:rgba(128,128,128,0.15);border-radius:4px;font-size:11px">${h}</span>`).join('');
+  document.getElementById('all-headers').innerHTML=html;
+  updateAll();
+}
+
+// SAVE
+function saveData(){
+  if(db.length===0) return alert("Nada para salvar.");
+  let injStr=`const DATA_STORE = { db: ${JSON.stringify(db)}, meta: ${JSON.stringify(meta)}, pipeline: ${JSON.stringify(pipelineStats)} };`;
+  let html=document.documentElement.outerHTML;
+  html=html.replace(/const DATA_STORE = \{[\s\S]*?\};/,injStr);
+  const logo=document.getElementById('logo-img').src;
+  if(logo.startsWith('data:image')){html=html.replace(/<img id="logo-img" src="[^"]*"/,`<img id="logo-img" src="${logo}"`);}
+  let blob=new Blob([html],{type:'text/html'});
+  let a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`VIP_Dashboard_Pro_${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.html`;
+  a.click();
+}
+
+window.onload=()=>{
+  if(db&&db.length>0){updateAll();log("Base carregada: "+db.length+" jogadores.");}
+};
+</script>
+</body>
+</html>
